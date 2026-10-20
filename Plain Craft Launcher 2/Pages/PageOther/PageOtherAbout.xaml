@@ -32,7 +32,7 @@
                     <local:MyButton Text="赞助 PCL !" Grid.Column="2" Grid.Row="0" Height="35" ColorType="Highlight"
                                     local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://meloong.com/afd/a/LTCat" />
                     <local:MyButton Text="查看源代码" Grid.Column="2" Grid.Row="1" Height="35" 
-                                    local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/GloriaCloud/PCL2" />
+                                    local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/GloriaCloud123/PCL2" />
                 </Grid>
             </local:MyCard>
             <local:MyCard Margin="0,0,0,15" Title="GloriaCloud 开源分发声明">
@@ -40,7 +40,7 @@
                     <local:MyListItem IsHitTestVisible="False" Title="原开发作者：龙腾猫跃（LTCat）" Info="PCL（Plain Craft Launcher）由龙腾猫跃开发并开源，本修改版保留其署名。" />
                     <local:MyListItem IsHitTestVisible="False" Title="本软件基于 PCL 开源代码进行更改" Info="任何责任均与龙腾猫跃本人无关。" />
                     <local:MyButton Text="查看 GloriaCloud 开源仓库" Height="35" Margin="0,12,0,0"
-                                    local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/GloriaCloud/PCL2" />
+                                    local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/GloriaCloud123/PCL2" />
                 </StackPanel>
             </local:MyCard>
             <local:MyCard Margin="0,0,0,15" Title="特别鸣谢">
@@ -488,7 +488,7 @@
                                         local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://shimo.im/docs/rGrd8pY8xWkt6ryW#anchor-RnU9" />
                         <local:MyButton Text="PCL 分发有限许可" Width="170" Padding="13,0" Margin="0,0,20,0" 
                                         local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://shimo.im/docs/rGrd8pY8xWkt6ryW#anchor-X0bo" />
-                        <local:MyButton Text="开源代码" Width="140" Padding="13,0" local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/GloriaCloud/PCL2" />
+                        <local:MyButton Text="开源代码" Width="140" Padding="13,0" local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/GloriaCloud123/PCL2" />
                     </StackPanel>
                 </StackPanel>
             </local:MyCard>
