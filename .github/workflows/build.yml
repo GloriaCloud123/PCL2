@@ -1,0 +1,56 @@
+name: 构建 PCL GloriaCloud EXE
+
+on:
+  workflow_dispatch:        # 在 GitHub 网页上手动点 “Run workflow” 即可
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    name: Build EXE
+    runs-on: windows-latest   # GitHub 托管的真实 Windows + Visual Studio 2022（含 WPF / .NET Framework 4.8）
+    steps:
+      - name: 签出源码（含 MeloongCore 子模块）
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
+
+      - name: 更新帮助文档（可选，失败则用仓库自带 Help.zip）
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          Set-Location ..
+          git clone https://github.com/LTCatt/PCL2Help.git -b master --single-branch --depth 1
+          Set-Location PCL2Help
+          Remove-Item -Path *.* -Recurse -Force
+          Compress-Archive -Path .\* -DestinationPath .\Help.zip
+          Copy-Item -Path .\Help.zip -Destination "${{ GITHUB.WORKSPACE }}\Plain Craft Launcher 2\Resources\Help.zip" -Force
+          Set-Location ..
+          Remove-Item PCL2Help -Recurse -Force
+          Set-Location ${{ GITHUB.WORKSPACE }}
+
+      - name: 注入构建信息（未配置 Secret 时相关功能自动关闭，不影响编译）
+        shell: pwsh
+        run: |
+          (gc "Plain Craft Launcher 2\Modules\ModSecret.vb") -replace 'Public OAuthClientId As String = If\(Environment.GetEnvironmentVariable\("PCL_MS_CLIENT_ID"\), ""\)', 'Public OAuthClientId As String = If(Environment.GetEnvironmentVariable("PCL_MS_CLIENT_ID"), "${{ secrets.CLIENT_ID }}")' | Out-File "Plain Craft Launcher 2\Modules\ModSecret.vb"
+          (gc "Plain Craft Launcher 2\Modules\ModSecret.vb") -replace 'Public CurseForgeAPIKey As String = If\(Environment.GetEnvironmentVariable\("PCL_CURSEFORGE_API_KEY"\), ""\)', 'Public CurseForgeAPIKey As String = If(Environment.GetEnvironmentVariable("PCL_CURSEFORGE_API_KEY"), "${{ secrets.CURSEFORGE_API_KEY }}")' | Out-File "Plain Craft Launcher 2\Modules\ModSecret.vb"
+          (gc "Plain Craft Launcher 2\Modules\Base\ModBase.vb") -replace 'Public Const CommitHash As String = ""', 'Public Const CommitHash As String = "${{ github.sha }}"' | Out-File "Plain Craft Launcher 2\Modules\Base\ModBase.vb"
+
+      - name: 编译 Release
+        run: msbuild "Plain Craft Launcher 2\Plain Craft Launcher 2.vbproj" /p:Configuration=Release /restore /v:minimal
+
+      - name: 列出生成产物
+        shell: pwsh
+        run: Get-ChildItem -Recurse "Plain Craft Launcher 2" -Filter "Plain Craft Launcher 2.exe" | Select-Object FullName
+
+      - name: 上传 EXE 构件
+        uses: actions/upload-artifact@v4
+        with:
+          name: PCL-GloriaCloud-exe
+          path: "Plain Craft Launcher 2/**/Plain Craft Launcher 2.exe"
