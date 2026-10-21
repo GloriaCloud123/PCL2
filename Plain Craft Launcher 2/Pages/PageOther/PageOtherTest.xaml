@@ -7,6 +7,36 @@
     xmlns:sys="clr-namespace:System;assembly=mscorlib"
     PanScroll="PanBack">
     <local:MyScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" x:Name="PanBack">
-        <TextBlock Text="为便于维护，开源内容中不包含百宝箱功能……" HorizontalAlignment="Center" FontSize="15" Height="30" VerticalAlignment="Center" />
+        <StackPanel x:Name="PanMain" Margin="25,10">
+            <local:MyCard Margin="0,15" Title="内存清理">
+                <Grid Margin="21,40,21,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <TextBlock x:Name="TextMemoryInfo" Grid.Row="0" TextWrapping="Wrap" FontSize="14" Margin="0,0,0,12" />
+                    <TextBlock Grid.Row="1" TextWrapping="Wrap" FontSize="13" Foreground="#999999" Margin="0,0,0,12" Text="点击“内存清理”将强制回收启动器占用的 .NET 内存，并尝试释放启动器及游戏 Java 进程占用的物理内存（工作集）。适合在游戏卡顿、或游戏启动前后进行清理。" />
+                    <local:MyButton x:Name="BtnMemory" Grid.Row="2" Text="内存清理" HorizontalAlignment="Left" MinWidth="140" Padding="13,0" Height="35" ColorType="Highlight" />
+                </Grid>
+            </local:MyCard>
+            <local:MyCard Margin="0,0,0,15" Title="下载自定义文件">
+                <StackPanel Margin="21,40,21,16">
+                    <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#999999" Margin="0,0,0,12" Text="输入任意文件的下载链接，启动器会帮你下载到本地（默认保存在临时目录）。在游戏内点击下载链接也会自动调用此功能。" />
+                    <local:MyTextBox x:Name="InputCustomUrl" Margin="0,0,0,10" HintText="文件下载链接（HTTP / HTTPS）" />
+                    <local:MyTextBox x:Name="InputCustomName" Margin="0,0,0,10" HintText="保存文件名（可选，留空则从链接自动获取）" />
+                    <Grid Margin="0,0,0,12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <local:MyTextBox x:Name="InputCustomFolder" Grid.Column="0" HintText="保存文件夹（可选，留空为默认下载目录）" />
+                        <local:MyButton x:Name="BtnCustomBrowse" Grid.Column="1" Text="选择文件夹" Margin="10,0,0,0" MinWidth="110" Padding="13,0" Height="35" />
+                    </Grid>
+                    <local:MyButton x:Name="BtnCustomDownload" Text="开始下载" HorizontalAlignment="Left" MinWidth="140" Padding="13,0" Height="35" ColorType="Highlight" />
+                    <TextBlock x:Name="TextCustomStatus" Margin="0,12,0,0" TextWrapping="Wrap" FontSize="13" Foreground="#999999" />
+                </StackPanel>
+            </local:MyCard>
+        </StackPanel>
     </local:MyScrollViewer>
 </local:MyPageRight>
