@@ -365,7 +365,7 @@ Module Program
 
     Private Function UpstreamFor(path As String) As KeyValuePair(Of String, List(Of String))
         For Each kv As KeyValuePair(Of String, List(Of String)) In UPSTREAM
-            If path.StartsWith(kv.Key) Then
+            If path.StartsWith("/" & kv.Key) Then
                 Return kv
             End If
         Next
