@@ -25,14 +25,14 @@ Module Program
     Private ReadOnly MOJANG_UPSTREAM_TIMEOUT_SEC As Integer = 8
     Private ReadOnly MIRROR_UPSTREAM_TIMEOUT_SEC As Integer = 20
     Private ReadOnly UPSTREAM As New List(Of KeyValuePair(Of String, List(Of String))) From {
-        New KeyValuePair(Of String, List(Of String))("v1/products/", New List(Of String) From {"https://piston-meta.mojang.com/v1/products/", "https://bmclapi2.bangbang93.com/v1/products/"}),
-        New KeyValuePair(Of String, List(Of String))("launcher-meta/", New List(Of String) From {"https://launchermeta.mojang.com/", "https://bmclapi2.bangbang93.com/"}),
-        New KeyValuePair(Of String, List(Of String))("piston-meta/", New List(Of String) From {"https://piston-meta.mojang.com/", "https://bmclapi2.bangbang93.com/"}),
-        New KeyValuePair(Of String, List(Of String))("piston-data/", New List(Of String) From {"https://piston-data.mojang.com/", "https://bmclapi2.bangbang93.com/"}),
-        New KeyValuePair(Of String, List(Of String))("libraries/", New List(Of String) From {"https://libraries.minecraft.net/", "https://bmclapi2.bangbang93.com/maven/"}),
-        New KeyValuePair(Of String, List(Of String))("resources/", New List(Of String) From {"https://resources.download.minecraft.net/", "https://bmclapi2.bangbang93.com/assets/"}),
-        New KeyValuePair(Of String, List(Of String))("launcher/", New List(Of String) From {"https://launcher.mojang.com/"}),
-        New KeyValuePair(Of String, List(Of String))("mc/", New List(Of String) From {"https://launchermeta.mojang.com/mc/", "https://bmclapi2.bangbang93.com/mc/"})
+        New KeyValuePair(Of String, List(Of String))("v1/products/", New List(Of String) From {"https://piston-meta.mojang.com/v1/products", "https://bmclapi2.bangbang93.com/v1/products"}),
+        New KeyValuePair(Of String, List(Of String))("launcher-meta/", New List(Of String) From {"https://launchermeta.mojang.com", "https://bmclapi2.bangbang93.com"}),
+        New KeyValuePair(Of String, List(Of String))("piston-meta/", New List(Of String) From {"https://piston-meta.mojang.com", "https://bmclapi2.bangbang93.com"}),
+        New KeyValuePair(Of String, List(Of String))("piston-data/", New List(Of String) From {"https://piston-data.mojang.com", "https://bmclapi2.bangbang93.com"}),
+        New KeyValuePair(Of String, List(Of String))("libraries/", New List(Of String) From {"https://libraries.minecraft.net", "https://bmclapi2.bangbang93.com/maven"}),
+        New KeyValuePair(Of String, List(Of String))("resources/", New List(Of String) From {"https://resources.download.minecraft.net", "https://bmclapi2.bangbang93.com/assets"}),
+        New KeyValuePair(Of String, List(Of String))("launcher/", New List(Of String) From {"https://launcher.mojang.com"}),
+        New KeyValuePair(Of String, List(Of String))("mc/", New List(Of String) From {"https://launchermeta.mojang.com/mc", "https://bmclapi2.bangbang93.com/mc"})
     }
 
     ' UPnP 状态
@@ -291,8 +291,8 @@ Module Program
             Return
         End If
 
-        Dim candidates As List(Of String) = UpstreamFor(pathPart)
-        If candidates Is Nothing Then
+        Dim match As KeyValuePair(Of String, List(Of String)) = UpstreamFor(pathPart)
+        If match.Value Is Nothing Then
             Console.WriteLine("[下载源] " & Now.ToString("HH:mm:ss") & " 404 未映射路径: " & pathPart)
             Await Send(ns, 404, "Not Found", "text/plain; charset=utf-8", Encoding.UTF8.GetBytes("Not Found"))
             Return
@@ -300,8 +300,8 @@ Module Program
 
         Dim isHead As Boolean = (method = "HEAD")
         Dim errMsg As String = Nothing
-        For Each baseUrl As String In candidates
-            Dim upstream As String = baseUrl & pathPart
+        For Each baseUrl As String In match.Value
+            Dim upstream As String = baseUrl & pathPart.Substring(match.Key.Length)
             If query <> "" Then upstream &= "?" & query
             Dim timeoutSec As Integer = If(upstream.Contains("mojang"), MOJANG_UPSTREAM_TIMEOUT_SEC, MIRROR_UPSTREAM_TIMEOUT_SEC)
             Dim cts As New CancellationTokenSource(TimeSpan.FromSeconds(timeoutSec))
@@ -363,13 +363,13 @@ Module Program
         Await Send(ns, 502, "Bad Gateway", "text/plain; charset=utf-8", Encoding.UTF8.GetBytes("所有上游均失败，最后错误: " & errMsg & vbCrLf & "请检查本机网络，或稍后重试。"))
     End Function
 
-    Private Function UpstreamFor(path As String) As List(Of String)
+    Private Function UpstreamFor(path As String) As KeyValuePair(Of String, List(Of String))
         For Each kv As KeyValuePair(Of String, List(Of String)) In UPSTREAM
             If path.StartsWith(kv.Key) Then
-                Return kv.Value
+                Return kv
             End If
         Next
-        Return Nothing
+        Return New KeyValuePair(Of String, List(Of String))("", Nothing)
     End Function
 
     ' ============ 端口 3889：MC 原版下载站面板 ============
