@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GloriaCloud · MC 原版游戏下载站</title>
+<style>
+:root{--blue:#6e6bf0;--teal:#2fe8dc;--bg:#0f1117;--card:#181b26;--line:#252a3a;--txt:#dfe3ee;--sub:#9aa3b8}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--txt);min-height:100vh}
+.wrap{max-width:1000px;margin:0 auto;padding:32px 20px 60px}
+header{display:flex;align-items:center;gap:18px;margin-bottom:8px}
+header img{width:84px}
+h1{font-size:26px}h1 b{color:var(--blue)}
+.tag{color:var(--sub);font-size:13px;margin-bottom:22px}
+.notice{background:linear-gradient(90deg,rgba(110,107,240,.14),rgba(47,232,220,.10));border:1px solid var(--line);
+border-radius:12px;padding:14px 18px;font-size:13.5px;line-height:1.8;color:var(--sub);margin-bottom:22px}
+.notice b{color:var(--txt)}
+.tabs{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.tabs button{background:var(--card);border:1px solid var(--line);color:var(--sub);padding:8px 18px;border-radius:999px;cursor:pointer;font-size:14px}
+.tabs button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+input{width:100%;background:var(--card);border:1px solid var(--line);color:var(--txt);border-radius:10px;
+padding:12px 16px;font-size:15px;margin-bottom:18px;outline:none}
+input:focus{border-color:var(--blue)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.v{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.v .id{font-weight:600;font-size:14.5px;word-break:break-all}
+.v .meta{font-size:12px;color:var(--sub)}
+.v .meta span{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(110,107,240,.16);color:#aeb4ff;margin-right:6px}
+.v .meta span.old{background:rgba(47,232,220,.12);color:var(--teal)}
+.dl{margin-top:auto;display:inline-block;text-align:center;background:var(--blue);color:#fff;text-decoration:none;
+border-radius:8px;padding:8px 0;font-size:13.5px;transition:.15s}
+.dl:hover{filter:brightness(1.12)}
+.dl.sv{background:transparent;border:1px solid var(--line);color:var(--sub)}
+footer{margin-top:34px;color:#5c657c;font-size:12px;line-height:1.9;border-top:1px solid var(--line);padding-top:16px}
+.count{color:var(--sub);font-size:13px;margin-bottom:12px}
+@media(max-width:600px){.grid{grid-template-columns:1fr 1fr}}
+</style></head><body><div class="wrap">
+<header><img src="__APIPROTO__://__APIHOST__/logo.png"><div>
+<h1><b>GloriaCloud</b> · MC 原版游戏下载站</h1>
+<div class="tag">数据同步 Mojang 官方清单 · 经本站 (:__PORT__) 加速分发</div></div></header>
+<div class="notice">
+<b>使用说明：</b>本站为 GloriaCloud 分发体系的下载源面板。启动器「下载 → 原版游戏」选择
+<b>GloriaCloud 下载源</b>即可自动加速；也可在此直接下载客户端 / 服务端。<br>
+<b>原开发作者：龙腾猫跃（LTCat）</b> —— 本下载体系所配套的启动器基于 PCL 开源代码二次更改，
+任何责任均与龙腾猫跃本人无关。
+</div>
+<div class="tabs" id="tabs">
+<button data-t="release" class="on">正式版</button><button data-t="snapshot">快照版</button>
+<button data-t="old_beta">Beta</button><button data-t="old_alpha">Alpha</button>
+</div>
+<input id="q" placeholder="搜索版本号，例如 1.20.4 / 1.21 / b1.7.3 …">
+<div class="count" id="count"></div>
+<div class="grid" id="grid"></div>
+<footer>
+GloriaCloud 开源分发 · MC 原版下载站面板<br>
+原开发作者：龙腾猫跃（LTCat）· 本软件基于 PCL 开源代码进行更改，任何责任均与龙腾猫跃本人无关<br>
+游戏文件均转发自 Mojang 官方 CDN，仅供已购买 Minecraft 正版的玩家使用
+</footer>
+</div>
+<script>
+let DATA=[],type="release",API="__APIPROTO__://__APIHOST__";
+const $=s=>document.querySelector(s);
+async function load(){
+  const r=await fetch(API+"/launcher-meta/mc/game/version_manifest.json");
+  DATA=(await r.json()).versions;render();
+}
+function rw(u){return (u||"")
+  .replace("https://piston-data.mojang.com",API+"/piston-data")
+  .replace("https://piston-meta.mojang.com",API+"/piston-meta")
+  .replace("https://launchermeta.mojang.com",API+"/launcher-meta")
+  .replace("https://launcher.mojang.com",API+"/launcher")
+  .replace("http://resources.download.minecraft.net",API+"/resources")
+  .replace("https://resources.download.minecraft.net",API+"/resources");}
+async function clientUrl(id){
+  const m=await (await fetch(API+"/launcher-meta/mc/game/version_manifest.json")).json();
+  const v=m.versions.find(x=>x.id===id);if(!v)return null;
+  const jurl=v.url.replace("https://launchermeta.mojang.com",API+"/launcher-meta");
+  const j=await (await fetch(jurl)).json();
+  return rw(j.downloads&&j.downloads.client&&j.downloads.client.url);
+}
+async function serverUrl(id){
+  const m=await (await fetch(API+"/launcher-meta/mc/game/version_manifest.json")).json();
+  const v=m.versions.find(x=>x.id===id);if(!v)return null;
+  const jurl=v.url.replace("https://launchermeta.mojang.com",API+"/launcher-meta");
+  const j=await (await fetch(jurl)).json();
+  return rw(j.downloads&&j.downloads.server&&j.downloads.server.url);
+}
+function render(){
+  const q=$("#q").value.trim().toLowerCase();
+  const list=DATA.filter(v=>v.type===type&&(!q||v.id.toLowerCase().includes(q)));
+  $("#count").textContent=`共 ${list.length} 个版本`;
+  $("#grid").innerHTML=list.map(v=>`<div class="v">
+    <div class="id">${v.id}</div>
+    <div class="meta"><span class="${v.type.startsWith('old')?'old':''}">${{release:'正式版',snapshot:'快照版',old_beta:'Beta',old_alpha:'Alpha'}[v.type]}</span>${v.releaseTime.slice(0,10)}</div>
+    <a class="dl" href="#" data-id="${v.id}" data-k="c">⬇ 下载客户端</a>
+    <a class="dl sv" href="#" data-id="${v.id}" data-k="s">下载服务端</a>
+  </div>`).join("");
+  document.querySelectorAll(".dl").forEach(a=>a.onclick=async e=>{
+    e.preventDefault();const id=a.dataset.id,k=a.dataset.k;
+    a.textContent="获取链接…";
+    const url=k==="c"?await clientUrl(id):await serverUrl(id);
+    if(url){location.href=url;}else{alert("未找到下载地址");a.textContent=k==="c"?"⬇ 下载客户端":"下载服务端";}
+  });
+}
+document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("on"));
+  b.classList.add("on");type=b.dataset.t;render();});
+$("#q").oninput=render;
+load();
+</script></body></html>

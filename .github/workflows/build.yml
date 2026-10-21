@@ -54,3 +54,16 @@ jobs:
         with:
           name: PCL-GloriaCloud-exe
           path: "Plain Craft Launcher 2/**/Plain Craft Launcher 2.exe"
+
+      - name: 编译下载源服务 EXE（VB.NET / .NET Framework 4.8，替代 Python）
+        run: msbuild "GloriaDownloadServer\GloriaDownloadServer.vbproj" /p:Configuration=Release /restore /v:minimal
+
+      - name: 列出下载源服务产物
+        shell: pwsh
+        run: Get-ChildItem -Recurse "GloriaDownloadServer" -Filter "GloriaDownloadServer.exe" | Select-Object FullName
+
+      - name: 上传下载源服务构件
+        uses: actions/upload-artifact@v4
+        with:
+          name: GloriaDownloadServer-exe
+          path: "GloriaDownloadServer/bin/Release/GloriaDownloadServer.exe"
