@@ -220,16 +220,32 @@ Retry:
         Dim Request As HttpRequestMessage = Nothing, CancelToken As CancellationTokenSource = Nothing,
             Response As HttpResponseMessage = Nothing, HostIp As String = Nothing
         Try
-            '构建 RequestClient
-            Directory.CreateDirectory(PathTemp & "Cache\Http\")
-            SyncLock RequestClientLock
-                If RequestClient Is Nothing Then '延迟初始化，以避免在程序启动前加载 CacheCow 导致 DLL 加载失败
-                    RequestClient = CacheCow.Client.ClientExtensions.CreateClient(New CacheCow.Client.FileCacheStore.FileStore(PathTemp & "Cache/Http/"), New HttpClientHandler With {
-                        .AutomaticDecompression = DecompressionMethods.Deflate Or DecompressionMethods.GZip,
-                        .UseCookies = False '不设为 False 就不能从 Header 手动传入 Cookies
-                    })
-                End If
-            End SyncLock
+            '构建请求客户端。本地回环地址（GloriaCloud 内嵌下载源）使用无缓存的直连客户端，
+            '避免 CacheCow 缓存文件被占用时抛出 "未能找到文件 System.Net.Http.Formatting.resources"（#8150）
+            Dim IsLocal As Boolean = Url.Contains("//127.") OrElse Url.Contains("//localhost")
+            Dim Client As HttpClient
+            If IsLocal Then
+                SyncLock DirectClientLock
+                    If DirectClient Is Nothing Then
+                        DirectClient = New HttpClient(New HttpClientHandler With {
+                            .AutomaticDecompression = DecompressionMethods.Deflate Or DecompressionMethods.GZip,
+                            .UseCookies = False
+                        })
+                    End If
+                End SyncLock
+                Client = DirectClient
+            Else
+                Directory.CreateDirectory(PathTemp & "Cache\Http\")
+                SyncLock RequestClientLock
+                    If RequestClient Is Nothing Then '延迟初始化，以避免在程序启动前加载 CacheCow 导致 DLL 加载失败
+                        RequestClient = CacheCow.Client.ClientExtensions.CreateClient(New CacheCow.Client.FileCacheStore.FileStore(PathTemp & "Cache/Http/"), New HttpClientHandler With {
+                            .AutomaticDecompression = DecompressionMethods.Deflate Or DecompressionMethods.GZip,
+                            .UseCookies = False '不设为 False 就不能从 Header 手动传入 Cookies
+                        })
+                    End If
+                End SyncLock
+                Client = RequestClient
+            End If
             '构建请求
             Url = SecretCdnSign(Url)
             Request = New HttpRequestMessage(Method, Url)
@@ -259,7 +275,7 @@ Retry:
                 If HostIp IsNot Nothing Then IPReliability.GetOrAdd(HostIp, -0.01) '预先降低一点，这样快速的重复请求会使用不同的 IP 以提高成功率
                 Dim ClonedRequest As HttpRequestMessage = Request.Clone() 'HttpRequestMessage 只能发送一次，重试时需要克隆一个新的
                 Try
-                    Response = RequestClient.SendAsync(ClonedRequest, HttpCompletionOption.ResponseHeadersRead, CancelToken.Token).GetResultWithTimeout(CancelToken, Timeout)
+                    Response = Client.SendAsync(ClonedRequest, HttpCompletionOption.ResponseHeadersRead, CancelToken.Token).GetResultWithTimeout(CancelToken, Timeout)
                 Finally
                     ClonedRequest.Dispose()
                 End Try
@@ -303,6 +319,8 @@ Retry:
     End Function
     Private RequestClient As HttpClient = Nothing
     Private RequestClientLock As New Object
+    Private DirectClient As HttpClient = Nothing '本地回环请求专用：不走 CacheCow 缓存
+    Private DirectClientLock As New Object
 
     ''' <summary>
     ''' 进行 DNS 解析。它仅在选择的 IP 与系统默认的不一致时才对 URL 中的 Host 进行替换。
