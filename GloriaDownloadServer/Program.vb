@@ -1,6 +1,7 @@
 ﻿Imports System
 Imports System.Collections.Generic
 Imports System.IO
+Imports Microsoft.VisualBasic
 Imports System.Net
 Imports System.Net.Sockets
 Imports System.Net.Http
@@ -94,7 +95,7 @@ Module Program
                 client.ReceiveTimeout = 30000
                 client.SendTimeout = 600000
                 Dim ns As NetworkStream = client.GetStream()
-                Dim headerBytes = Await ReadHeadersAsync(ns)
+                Dim headerBytes As Byte() = Await ReadHeadersAsync(ns)
                 If headerBytes Is Nothing Then Return
                 Dim headerText As String = Encoding.ASCII.GetString(headerBytes)
                 Dim lines() As String = headerText.Split(New String() {vbCrLf}, StringSplitOptions.None)
@@ -137,6 +138,7 @@ Module Program
             Next
             If buf.Length > 65536 Then Return Nothing
         End While
+        Return Nothing
     End Function
 
     '' ============ 端口 3888：下载源（反向代理 Mojang 官方 CDN） ============
@@ -170,6 +172,7 @@ Module Program
         If headers.ContainsKey("range") Then
             req.Headers.TryAddWithoutValidation("Range", headers("range"))
         End If
+        Dim errMsg As String = Nothing
         Try
             Using resp As HttpResponseMessage = Await httpClient.SendAsync(req, HttpCompletionOption.ResponseHeadersRead)
                 Dim statusCode As Integer = CInt(resp.StatusCode)
@@ -209,8 +212,11 @@ Module Program
                 End Using
             End Using
         Catch ex As Exception
-            Await Send(ns, 502, "Bad Gateway", "text/plain; charset=utf-8", Encoding.UTF8.GetBytes("上游错误: " & ex.Message))
+            errMsg = "上游错误: " & ex.Message
         End Try
+        If errMsg IsNot Nothing Then
+            Await Send(ns, 502, "Bad Gateway", "text/plain; charset=utf-8", Encoding.UTF8.GetBytes(errMsg))
+        End If
     End Function
 
     Private Function UpstreamFor(path As String) As String
