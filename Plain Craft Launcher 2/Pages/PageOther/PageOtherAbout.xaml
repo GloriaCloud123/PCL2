@@ -39,6 +39,8 @@
                 <StackPanel Margin="21,40,21,16">
                     <local:MyListItem IsHitTestVisible="False" Title="原开发作者：龙腾猫跃（LTCat）" Info="PCL（Plain Craft Launcher）由龙腾猫跃开发并开源，本修改版保留其署名。" />
                     <local:MyListItem IsHitTestVisible="False" Title="本软件基于 PCL 开源代码进行更改" Info="任何责任均与龙腾猫跃本人无关。" />
+                    <local:MyListItem IsHitTestVisible="False" Title="二次修改作者" Info="如果完美只存在于虚拟世界" />
+                    <local:MyListItem Title="GitHub 开源地址" Info="github.com/GloriaCloud123/PCL2" local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/GloriaCloud123/PCL2" />
                     <local:MyButton Text="查看 GloriaCloud 开源仓库" Height="35" Margin="0,12,0,0"
                                     local:CustomEventService.EventType="打开网页" local:CustomEventService.EventData="https://github.com/GloriaCloud123/PCL2" />
                 </StackPanel>
