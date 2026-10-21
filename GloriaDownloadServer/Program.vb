@@ -363,6 +363,15 @@ Module Program
         Await Send(ns, 502, "Bad Gateway", "text/plain; charset=utf-8", Encoding.UTF8.GetBytes("所有上游均失败，最后错误: " & errMsg & vbCrLf & "请检查本机网络，或稍后重试。"))
     End Function
 
+    Private Function UpstreamFor(path As String) As List(Of String)
+        For Each kv As KeyValuePair(Of String, List(Of String)) In UPSTREAM
+            If path.StartsWith(kv.Key) Then
+                Return kv.Value
+            End If
+        Next
+        Return Nothing
+    End Function
+
     ' ============ 端口 3889：MC 原版下载站面板 ============
     Private Async Function ServePanel(ns As NetworkStream, fullPath As String, headers As Dictionary(Of String, String)) As Task
         If fullPath.StartsWith("/favicon.ico") Then
