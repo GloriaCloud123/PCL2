@@ -545,6 +545,9 @@ Public Class FormMain
         End If
         '关闭联机？
         If FrmLinkMain?.TryExit(Not SendWarning, True) Then Return
+        '关闭联机功能（MSL / FRP）进程
+        If FrmMslMain IsNot Nothing Then FrmMslMain.KillOnExit()
+        If FrmFrpMain IsNot Nothing Then FrmFrpMain.KillOnExit()
         '关闭
         RunInUiWait(
         Sub()
@@ -1172,6 +1175,14 @@ Public Class FormMain
         ''' 帮助详情。这是一个副页面。
         ''' </summary>
         HelpDetail = 9
+        ''' <summary>
+        ''' 联机功能：服务器 MSL 方案。
+        ''' </summary>
+        LinkMsl = 10
+        ''' <summary>
+        ''' 联机功能：纯 FRP 联机方案。
+        ''' </summary>
+        LinkFrp = 11
     End Enum
     ''' <summary>
     ''' 次要页面种类。其数值必须与 StackPanel 中的下标一致。
@@ -1314,7 +1325,8 @@ Public Class FormMain
             '切换到主页面
             PageChangeExit()
             IsChangingPage = True '防止下面的勾选直接触发了 PageChangeActual
-            CType(PanTitleSelect.Children(Stack), MyRadioButton).SetChecked(True, True, PageNameGet(PageCurrent) = "")
+            Dim TitleBtn = GetTitleButton(CInt(Stack.Page))
+            If TitleBtn IsNot Nothing Then TitleBtn.SetChecked(True, True, PageNameGet(PageCurrent) = "")
             IsChangingPage = False
             Select Case Stack.Page
                 Case PageType.Download
@@ -1341,7 +1353,20 @@ Public Class FormMain
     ''' <summary>
     ''' 通过点击导航栏改变页面。
     ''' </summary>
-    Private Sub BtnTitleSelect_Click(sender As MyRadioButton, raiseByMouse As Boolean) Handles BtnTitleSelect0.Check, BtnTitleSelect1.Check, BtnTitleSelect2.Check, BtnTitleSelect3.Check, BtnTitleSelect4.Check
+    ''' <summary>
+    ''' 根据 Tag（即 PageType 数值）在顶部导航栏中查找对应的菜单按钮。
+    ''' 使用 Tag 而非子元素索引，避免插入新菜单项后索引错位。
+    ''' </summary>
+    Private Function GetTitleButton(TagValue As Integer) As MyRadioButton
+        For Each Child In PanTitleSelect.Children
+            If TypeOf Child Is MyRadioButton AndAlso Val(CType(Child, MyRadioButton).Tag) = TagValue Then
+                Return CType(Child, MyRadioButton)
+            End If
+        Next
+        Return Nothing
+    End Function
+
+    Private Sub BtnTitleSelect_Click(sender As MyRadioButton, raiseByMouse As Boolean) Handles BtnTitleSelect0.Check, BtnTitleSelect1.Check, BtnTitleSelect2.Check, BtnTitleSelect3.Check, BtnTitleSelect4.Check, BtnTitleSelect5.Check, BtnTitleSelect6.Check
         If IsChangingPage Then Return
         PageChangeActual(Val(sender.Tag))
     End Sub
@@ -1419,6 +1444,12 @@ Public Class FormMain
                 Case PageType.Link '联机
                     If FrmLinkMain Is Nothing Then FrmLinkMain = New PageLinkMain
                     PageChangeAnim(New MyPageLeft, FrmLinkMain)
+                Case PageType.LinkMsl '联机功能：MSL 方案
+                    If FrmMslMain Is Nothing Then FrmMslMain = New PageMslMain
+                    PageChangeAnim(New MyPageLeft, FrmMslMain)
+                Case PageType.LinkFrp '联机功能：FRP 方案
+                    If FrmFrpMain Is Nothing Then FrmFrpMain = New PageFrpMain
+                    PageChangeAnim(New MyPageLeft, FrmFrpMain)
                 Case PageType.Setup '设置
                     If FrmSetupLeft Is Nothing Then FrmSetupLeft = New PageSetupLeft
                     PageChangeAnim(FrmSetupLeft, FrmSetupLeft.PageGet(SubType))

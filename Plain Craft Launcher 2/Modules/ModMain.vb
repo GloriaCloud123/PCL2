@@ -375,6 +375,9 @@ EndHint:
 
     '联机页面声明
     Public FrmLinkMain As PageLinkMain
+    '联机功能（新增）页面声明
+    Public FrmMslMain As PageMslMain
+    Public FrmFrpMain As PageFrpMain
 
     '下载页面声明
     Public FrmDownloadLeft As PageDownloadLeft

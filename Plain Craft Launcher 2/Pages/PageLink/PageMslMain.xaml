@@ -1,0 +1,93 @@
+<local:MyPageRight
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PCL" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" x:Class="PageMslMain"
+             d:DesignWidth="820" d:DesignHeight="820">
+    <Grid Margin="25,15,25,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="服务器 MSL 方案（新手推荐）" FontSize="22" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,4" />
+        <TextBlock Grid.Row="0" Text="基于 MSL（Minecraft Server Launcher）的开服 / 联机工具，内置端口映射、P2P 与 FRP 穿透，开箱即用。"
+                   FontSize="13" Foreground="{StaticResource ColorBrushGray3}" Margin="0,37,0,10" TextWrapping="Wrap" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+            <local:MyRadioButton x:Name="BtnTabServer" Text="服务方" Margin="0,0,10,0" Padding="12,6" />
+            <local:MyRadioButton x:Name="BtnTabLog" Text="日志输出" Margin="0,0,10,0" Padding="12,6" />
+            <local:MyRadioButton x:Name="BtnTabPanel" Text="服务器面板" Margin="0,0,10,0" Padding="12,6" />
+        </StackPanel>
+
+        <!-- 服务方 -->
+        <ScrollViewer Grid.Row="2" x:Name="PanServer" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <local:MyCard Margin="0,0,0,12">
+                    <StackPanel Margin="15,13">
+                        <TextBlock Text="什么是 MSL？" FontSize="15" Foreground="{DynamicResource ColorBrush3}" />
+                        <TextBlock Text="MSL（Minecraft Server Launcher）是一套面向 Windows 的 Minecraft 开服 / 联机工具，界面友好、操作简单。它内置了多种联机方式：开服联机、FRP 局域网联机（已接入 OpenFrp、ChmlFrp 等服务商）、以及 P2P 点对点联机。本页面将其整合进 PCL，新手也能一键开服。" FontSize="13" Foreground="{StaticResource ColorBrushGray2}" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="19" />
+                    </StackPanel>
+                </local:MyCard>
+
+                <local:MyCard Margin="0,0,0,12">
+                    <StackPanel Margin="15,13">
+                        <TextBlock Text="第一步：获取 MSL 工具" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,4" />
+                        <TextBlock Text="点击下方按钮，从官方渠道下载 MSL 并保存到本地工具目录。" FontSize="13" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                        <local:MyButton x:Name="BtnMslDownload" Text="① 下载 MSL 工具" Padding="13,8" ColorType="Highlight" />
+
+                        <TextBlock Text="第二步：配置并启动" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,16,0,4" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="服务器名称" VerticalAlignment="Center" Margin="0,0,10,0" Width="84" />
+                            <local:MyTextBox x:Name="TxtMslName" Width="240" Text="我的 Minecraft 服务器" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                            <TextBlock Text="游戏端口" VerticalAlignment="Center" Margin="0,0,10,0" Width="84" />
+                            <local:MyTextBox x:Name="TxtMslPort" Width="140" Text="25565" />
+                        </StackPanel>
+                        <local:MyButton x:Name="BtnMslStart" Text="② 启动 MSL（开服）" Padding="13,8" Margin="0,0,0,10" />
+                        <local:MyButton x:Name="BtnMslStop" Text="停止服务" Padding="13,8" ColorType="Red" />
+                        <TextBlock Text="提示：MSL 启动后会在它自己的窗口中管理服务器、映射与玩家，本启动器仅负责下载与启动，并展示运行状态。" FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="17" />
+                    </StackPanel>
+                </local:MyCard>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 日志输出 -->
+        <Grid x:Name="PanLog" Grid.Row="2" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <local:MyButton x:Name="BtnMslLogClear" Grid.Row="0" Text="清空日志" HorizontalAlignment="Right" Margin="0,0,0,8" Padding="13,7" />
+            <TextBox x:Name="TxtMslLog" Grid.Row="1" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                     Background="{StaticResource ColorBrushBg1}" Foreground="{StaticResource ColorBrushGray1}" FontFamily="Consolas" FontSize="12" Padding="10" />
+        </Grid>
+
+        <!-- 服务器面板 -->
+        <Grid x:Name="PanPanel" Grid.Row="2" Visibility="Collapsed">
+            <StackPanel VerticalAlignment="Top" Margin="0,4,0,0">
+                <local:MyCard Margin="0,0,0,12">
+                    <StackPanel Margin="15,13">
+                        <TextBlock Text="运行状态" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="当前状态：" VerticalAlignment="Center" Width="84" Foreground="{StaticResource ColorBrushGray2}" />
+                            <TextBlock x:Name="LabMslStatus" Text="未运行" VerticalAlignment="Center" FontSize="14" Foreground="{StaticResource ColorBrushGray1}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="进程 PID：" VerticalAlignment="Center" Width="84" Foreground="{StaticResource ColorBrushGray2}" />
+                            <TextBlock x:Name="LabMslPid" Text="—" VerticalAlignment="Center" FontSize="14" Foreground="{StaticResource ColorBrushGray1}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="工具路径：" VerticalAlignment="Center" Width="84" Foreground="{StaticResource ColorBrushGray2}" />
+                            <TextBlock x:Name="LabMslPath" Text="—" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </local:MyCard>
+                <local:MyButton x:Name="BtnMslOpenFolder" Text="打开 MSL 工具目录" Padding="13,8" Margin="0,0,0,10" />
+                <local:MyButton x:Name="BtnMslStop2" Text="停止服务" Padding="13,8" ColorType="Red" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</local:MyPageRight>

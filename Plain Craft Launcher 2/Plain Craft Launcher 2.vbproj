@@ -306,6 +306,12 @@
     <Compile Include="Pages\PageLink\PageLinkMain.xaml.vb">
       <DependentUpon>PageLinkMain.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Pages\PageLink\PageMslMain.xaml.vb">
+      <DependentUpon>PageMslMain.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Pages\PageLink\PageFrpMain.xaml.vb">
+      <DependentUpon>PageFrpMain.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Pages\PageOther\PageOtherHelpDetail.xaml.vb">
       <DependentUpon>PageOtherHelpDetail.xaml</DependentUpon>
     </Compile>
@@ -564,6 +570,14 @@
       <SubType>Designer</SubType>
     </None>
     <Page Include="Pages\PageLink\PageLinkMain.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Pages\PageLink\PageMslMain.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Pages\PageLink\PageFrpMain.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

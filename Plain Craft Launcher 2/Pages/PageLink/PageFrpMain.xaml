@@ -1,0 +1,137 @@
+<local:MyPageRight
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PCL" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" x:Class="PageFrpMain"
+             d:DesignWidth="820" d:DesignHeight="820">
+    <Grid Margin="25,15,25,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="纯 FRP 联机方案（入门）" FontSize="22" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,4" />
+        <TextBlock Grid.Row="0" Text="FRP 内网穿透方案，支持导入 .ini 配置文件或直接粘贴配置文本，参考 FRP 管理器形式，适合已拥有 FRP 节点的玩家。"
+                   FontSize="13" Foreground="{StaticResource ColorBrushGray3}" Margin="0,37,0,10" TextWrapping="Wrap" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+            <local:MyRadioButton x:Name="BtnFrpTabServer" Text="服务方" Margin="0,0,10,0" Padding="12,6" />
+            <local:MyRadioButton x:Name="BtnFrpTabLog" Text="日志输出" Margin="0,0,10,0" Padding="12,6" />
+            <local:MyRadioButton x:Name="BtnFrpTabPanel" Text="服务器面板" Margin="0,0,10,0" Padding="12,6" />
+        </StackPanel>
+
+        <!-- 服务方 -->
+        <ScrollViewer Grid.Row="2" x:Name="PanFrpServer" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="选择配置来源（二选一）" FontSize="14" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="12" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 导入 ini 配置文件模式 -->
+                    <local:MyCard x:Name="CardFrpIni" Grid.Column="0" CornerRadius="13" Height="120">
+                        <Grid IsHitTestVisible="False" Margin="15,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Height="30" Width="30" Stretch="Uniform" Fill="{DynamicResource ColorBrush3}"
+                                  Data="M358 0H64C28.7 0 0 28.7 0 64v384c0 35.3 28.7 64 64 64h320c35.3 0 64-28.7 64-64V128L358 0zM256 416c-52.9 0-96-43.1-96-96s43.1-96 96-96 96 43.1 96 96-43.1 96-96 96zm0-160c-35.3 0-64 28.7-64 64s28.7 64 64 64 64-28.7 64-64-28.7-64-64-64z" />
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                <TextBlock Text="导入 ini 配置文件模式" FontSize="16" Foreground="{DynamicResource ColorBrush3}" />
+                                <TextBlock Text="从本地选择 frpc 的 .ini / .toml 配置文件。" FontSize="13" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Grid>
+                    </local:MyCard>
+
+                    <!-- 手动粘贴 txt 代码 -->
+                    <local:MyCard x:Name="CardFrpPaste" Grid.Column="2" CornerRadius="13" Height="120">
+                        <Grid IsHitTestVisible="False" Margin="15,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Path Grid.Column="0" Height="30" Width="30" Stretch="Uniform" Fill="{DynamicResource ColorBrush3}"
+                                  Data="M320 0H128C91.8 0 64 27.8 64 64v352c0 35.3 28.7 64 64 64h256c35.3 0 64-28.7 64-64V128L320 0zm-32 384H160c-8.8 0-16-7.2-16-16s7.2-16 16-16h128c8.8 0 16 7.2 16 16s-7.2 16-16 16zm0-80H160c-8.8 0-16-7.2-16-16s7.2-16 16-16h128c8.8 0 16 7.2 16 16s-7.2 16-16 16zm-96-80H160c-8.8 0-16-7.2-16-16s7.2-16 16-16h64c8.8 0 16 7.2 16 16s-7.2 16-16 16z" />
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                <TextBlock Text="手动粘贴 txt 代码" FontSize="16" Foreground="{DynamicResource ColorBrush3}" />
+                                <TextBlock Text="把服务商给你的 frpc 配置文本直接粘贴进来。" FontSize="13" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Grid>
+                    </local:MyCard>
+                </Grid>
+
+                <!-- 已选模式内容 -->
+                <local:MyCard x:Name="CardFrpSelectedIni" Margin="0,0,0,12" Visibility="Collapsed">
+                    <StackPanel Margin="15,13">
+                        <TextBlock Text="已选择：导入 ini 配置文件" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+                        <local:MyButton x:Name="BtnFrpChooseFile" Text="选择配置文件…" Padding="13,8" Margin="0,0,0,8" />
+                        <TextBlock x:Name="LabFrpFilePath" Text="尚未选择文件" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" />
+                    </StackPanel>
+                </local:MyCard>
+
+                <local:MyCard x:Name="CardFrpSelectedPaste" Margin="0,0,0,12" Visibility="Collapsed">
+                    <StackPanel Margin="15,13">
+                        <TextBlock Text="已选择：手动粘贴 txt 代码" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+                        <TextBox x:Name="TxtFrpPaste" AcceptsReturn="True" Height="150" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                 Background="{StaticResource ColorBrushBg1}" Foreground="{StaticResource ColorBrushGray1}" FontFamily="Consolas" FontSize="12" Padding="10"
+                                 ToolTip="在此粘贴 frpc 的完整配置内容" />
+                    </StackPanel>
+                </local:MyCard>
+
+                <local:MyCard Margin="0,0,0,12">
+                    <StackPanel Margin="15,13">
+                        <TextBlock Text="启动映射" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                        <local:MyButton x:Name="BtnFrpDownload" Text="① 下载 frpc 客户端" Padding="13,8" ColorType="Highlight" Margin="0,0,0,10" />
+                        <local:MyButton x:Name="BtnFrpStart" Text="② 启动 frpc（服务方映射）" Padding="13,8" Margin="0,0,0,10" />
+                        <local:MyButton x:Name="BtnFrpStop" Text="停止映射" Padding="13,8" ColorType="Red" />
+                        <TextBlock Text="提示：frpc 会读取你的 FRP 节点配置，将本机服务映射到公网。配置错误时请在“日志输出”中查看报错。" FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="17" />
+                    </StackPanel>
+                </local:MyCard>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 日志输出 -->
+        <Grid x:Name="PanFrpLog" Grid.Row="2" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <local:MyButton x:Name="BtnFrpLogClear" Grid.Row="0" Text="清空日志" HorizontalAlignment="Right" Margin="0,0,0,8" Padding="13,7" />
+            <TextBox x:Name="TxtFrpLog" Grid.Row="1" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                     Background="{StaticResource ColorBrushBg1}" Foreground="{StaticResource ColorBrushGray1}" FontFamily="Consolas" FontSize="12" Padding="10" />
+        </Grid>
+
+        <!-- 服务器面板 -->
+        <Grid x:Name="PanFrpPanel" Grid.Row="2" Visibility="Collapsed">
+            <StackPanel VerticalAlignment="Top" Margin="0,4,0,0">
+                <local:MyCard Margin="0,0,0,12">
+                    <StackPanel Margin="15,13">
+                        <TextBlock Text="映射状态" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="当前状态：" VerticalAlignment="Center" Width="84" Foreground="{StaticResource ColorBrushGray2}" />
+                            <TextBlock x:Name="LabFrpStatus" Text="未运行" VerticalAlignment="Center" FontSize="14" Foreground="{StaticResource ColorBrushGray1}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="进程 PID：" VerticalAlignment="Center" Width="84" Foreground="{StaticResource ColorBrushGray2}" />
+                            <TextBlock x:Name="LabFrpPid" Text="—" VerticalAlignment="Center" FontSize="14" Foreground="{StaticResource ColorBrushGray1}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="配置文件：" VerticalAlignment="Center" Width="84" Foreground="{StaticResource ColorBrushGray2}" />
+                            <TextBlock x:Name="LabFrpConfig" Text="—" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </local:MyCard>
+                <local:MyButton x:Name="BtnFrpOpenFolder" Text="打开 frpc 工具目录" Padding="13,8" Margin="0,0,0,10" />
+                <local:MyButton x:Name="BtnFrpStop2" Text="停止映射" Padding="13,8" ColorType="Red" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</local:MyPageRight>
