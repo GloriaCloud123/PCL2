@@ -19,7 +19,14 @@ Public Class PageMslMain
     Private SwMslIn As StreamWriter = Nothing
     Private ManifestJson As String = ""
 
+    Private CurrentMslPanel As FrameworkElement = Nothing
+
     Private Sub Init() Handles Me.Loaded
+        '初始化默认子页（服务方）显示，加载阶段不做动画，避免与页面进入动画冲突
+        PanServer.Visibility = Visibility.Visible
+        PanLog.Visibility = Visibility.Collapsed
+        PanPanel.Visibility = Visibility.Collapsed
+        CurrentMslPanel = PanServer
         BtnTabServer.Checked = True '确保默认服务方标签页被正确高亮并显示
         AttachMenu(BtnMslMore, AddressOf OnMslMenu)
         RefreshMslState()
@@ -40,9 +47,21 @@ Public Class PageMslMain
     '===============================
 
     Private Sub TabMsl_Check(sender As Object, raiseByMouse As Boolean) Handles BtnTabServer.Check, BtnTabLog.Check, BtnTabPanel.Check
-        PanServer.Visibility = If(BtnTabServer.Checked, Visibility.Visible, Visibility.Collapsed)
-        PanLog.Visibility = If(BtnTabLog.Checked, Visibility.Visible, Visibility.Collapsed)
-        PanPanel.Visibility = If(BtnTabPanel.Checked, Visibility.Visible, Visibility.Collapsed)
+        SwitchMslTab(If(BtnTabServer.Checked, PanServer, If(BtnTabLog.Checked, PanLog, PanPanel)))
+    End Sub
+
+    '平滑切换子页：先折叠旧面板，再以「淡入 + 轻微上滑」呈现新面板（使用 Translate 变换，不触发布局重排，保证流畅）
+    Private Sub SwitchMslTab(Target As FrameworkElement)
+        If Target Is CurrentMslPanel Then Return
+        If CurrentMslPanel IsNot Nothing Then CurrentMslPanel.Visibility = Visibility.Collapsed
+        CurrentMslPanel = Target
+        Target.Visibility = Visibility.Visible
+        Target.Opacity = 0
+        Target.RenderTransform = New TranslateTransform(0, 12)
+        AniStart({
+            AaOpacity(Target, 1, 160,, New AniEaseOutFluent),
+            AaTranslateY(Target, -12, 160,, New AniEaseOutFluent)
+        }, "MslTabSwitch " & Target.Name)
     End Sub
 
     '===============================

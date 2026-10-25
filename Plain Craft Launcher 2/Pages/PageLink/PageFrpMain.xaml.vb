@@ -18,7 +18,14 @@ Public Class PageFrpMain
     Private FrpMode As String = ""
     Private ProcFrpc As Process = Nothing
 
+    Private CurrentFrpPanel As FrameworkElement = Nothing
+
     Private Sub Init() Handles Me.Loaded
+        '初始化默认子页（服务方）显示，加载阶段不做动画，避免与页面进入动画冲突
+        PanFrpServer.Visibility = Visibility.Visible
+        PanFrpLog.Visibility = Visibility.Collapsed
+        PanFrpPanel.Visibility = Visibility.Collapsed
+        CurrentFrpPanel = PanFrpServer
         BtnFrpTabServer.Checked = True '确保默认服务方标签页被正确高亮并显示
         AttachMenu(BtnFrpMore, AddressOf OnFrpMenu)
         RefreshFrpState()
@@ -39,9 +46,21 @@ Public Class PageFrpMain
     '===============================
 
     Private Sub TabFrp_Check(sender As Object, raiseByMouse As Boolean) Handles BtnFrpTabServer.Check, BtnFrpTabLog.Check, BtnFrpTabPanel.Check
-        PanFrpServer.Visibility = If(BtnFrpTabServer.Checked, Visibility.Visible, Visibility.Collapsed)
-        PanFrpLog.Visibility = If(BtnFrpTabLog.Checked, Visibility.Visible, Visibility.Collapsed)
-        PanFrpPanel.Visibility = If(BtnFrpTabPanel.Checked, Visibility.Visible, Visibility.Collapsed)
+        SwitchFrpTab(If(BtnFrpTabServer.Checked, PanFrpServer, If(BtnFrpTabLog.Checked, PanFrpLog, PanFrpPanel)))
+    End Sub
+
+    '平滑切换子页：先折叠旧面板，再以「淡入 + 轻微上滑」呈现新面板（使用 Translate 变换，不触发布局重排，保证流畅）
+    Private Sub SwitchFrpTab(Target As FrameworkElement)
+        If Target Is CurrentFrpPanel Then Return
+        If CurrentFrpPanel IsNot Nothing Then CurrentFrpPanel.Visibility = Visibility.Collapsed
+        CurrentFrpPanel = Target
+        Target.Visibility = Visibility.Visible
+        Target.Opacity = 0
+        Target.RenderTransform = New TranslateTransform(0, 12)
+        AniStart({
+            AaOpacity(Target, 1, 160,, New AniEaseOutFluent),
+            AaTranslateY(Target, -12, 160,, New AniEaseOutFluent)
+        }, "FrpTabSwitch " & Target.Name)
     End Sub
 
     '===============================
