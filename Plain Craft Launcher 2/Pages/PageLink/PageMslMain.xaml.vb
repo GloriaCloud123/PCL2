@@ -58,7 +58,7 @@ Public Class PageMslMain
                 MslExePath = PathMsl & "MSL_setup.exe"
                 If File.Exists(MslExePath) Then File.Delete(MslExePath)
                 File.Move(Temp, MslExePath)
-                LogMsl("已下载安装包：MSL_setup.exe。点击“启动 MSL”运行安装 / 启动。")
+                LogMsl("已下载安装包：MSL_setup.exe。点击""启动 MSL""运行安装 / 启动。")
                 Hint("MSL 下载完成（安装包）！", HintType.Green)
             End If
         Catch ex As Exception
@@ -80,7 +80,7 @@ Public Class PageMslMain
         End If
         Dim Exe = MslExePath
         If String.IsNullOrEmpty(Exe) OrElse Not File.Exists(Exe) Then
-            Hint("请先在“服务方”中下载 MSL 工具！", HintType.Red) : Return
+            Hint("请先在""服务方""中下载 MSL 工具！", HintType.Red) : Return
         End If
         Try
             Dim ServerName As String = If(String.IsNullOrWhiteSpace(TxtMslName.Text), "我的服务器", TxtMslName.Text)

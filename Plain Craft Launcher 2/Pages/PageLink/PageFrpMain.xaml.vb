@@ -111,7 +111,7 @@ Public Class PageFrpMain
             Hint("frpc 已在运行！", HintType.Blue) : Return
         End If
         If String.IsNullOrEmpty(FrpExePath) OrElse Not File.Exists(FrpExePath) Then
-            Hint("请先在“服务方”中下载 frpc 客户端！", HintType.Red) : Return
+            Hint("请先在""服务方""中下载 frpc 客户端！", HintType.Red) : Return
         End If
         If String.IsNullOrEmpty(FrpMode) Then
             Hint("请先选择配置来源（导入 ini 或 粘贴 txt）！", HintType.Red) : Return
