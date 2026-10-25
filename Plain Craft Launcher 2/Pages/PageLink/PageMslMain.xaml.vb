@@ -21,8 +21,18 @@ Public Class PageMslMain
 
     Private Sub Init() Handles Me.Loaded
         BtnTabServer.Checked = True '确保默认服务方标签页被正确高亮并显示
+        AttachMenu(BtnMslMore, AddressOf OnMslMenu)
         RefreshMslState()
         RunInNewThread(AddressOf LoadVersionsThread)
+    End Sub
+
+    Private Sub AttachMenu(Btn As MyButton, H As RoutedEventHandler)
+        If Btn.ContextMenu IsNot Nothing Then
+            For Each it As Object In Btn.ContextMenu.Items
+                Dim mi As MyMenuItem = TryCast(it, MyMenuItem)
+                If mi IsNot Nothing Then AddHandler mi.Click, H
+            Next
+        End If
     End Sub
 
     '===============================
@@ -264,30 +274,28 @@ Public Class PageMslMain
         End If
     End Sub
 
-    Private Sub MenuMslClear_Click() Handles MenuMslClear.Click
-        TxtMslConsole.Clear()
-    End Sub
-
-    Private Sub MenuMslRestart_Click() Handles MenuMslRestart.Click
-        If IsRunning() Then
-            Hint("请先关闭服务器，再进行重启。", HintType.Blue) : Return
-        End If
-        BtnMslStart_Click()
-    End Sub
-
-    Private Sub MenuMslFolder_Click() Handles MenuMslFolder.Click
-        Try
-            Dim Dir As String = If(String.IsNullOrEmpty(MslCorePath), PathMsl, Path.GetDirectoryName(MslCorePath))
-            Directory.CreateDirectory(Dir)
-            Process.Start(New ProcessStartInfo(Dir) With {.UseShellExecute = True})
-        Catch ex As Exception
-            Hint("打开目录失败：" & ex.Message, HintType.Red)
-        End Try
-    End Sub
-
-    Private Sub MenuMslForce_Click() Handles MenuMslForce.Click
-        StopServer(True)
-        RefreshMslState()
+    Private Sub OnMslMenu(sender As Object, e As RoutedEventArgs)
+        Dim TagVal = CType(sender, MyMenuItem).Tag
+        Select Case If(TagVal Is Nothing, "", TagVal.ToString())
+            Case "clear"
+                TxtMslConsole.Clear()
+            Case "restart"
+                If IsRunning() Then
+                    Hint("请先关闭服务器，再进行重启。", HintType.Blue) : Return
+                End If
+                BtnMslStart_Click()
+            Case "folder"
+                Try
+                    Dim Dir As String = If(String.IsNullOrEmpty(MslCorePath), PathMsl, Path.GetDirectoryName(MslCorePath))
+                    Directory.CreateDirectory(Dir)
+                    Process.Start(New ProcessStartInfo(Dir) With {.UseShellExecute = True})
+                Catch ex As Exception
+                    Hint("打开目录失败：" & ex.Message, HintType.Red)
+                End Try
+            Case "force"
+                StopServer(True)
+                RefreshMslState()
+        End Select
     End Sub
 
     '===============================

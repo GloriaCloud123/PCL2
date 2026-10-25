@@ -20,8 +20,18 @@ Public Class PageFrpMain
 
     Private Sub Init() Handles Me.Loaded
         BtnFrpTabServer.Checked = True '确保默认服务方标签页被正确高亮并显示
+        AttachMenu(BtnFrpMore, AddressOf OnFrpMenu)
         RefreshFrpState()
         RunInNewThread(AddressOf CheckFrpcThread)
+    End Sub
+
+    Private Sub AttachMenu(Btn As MyButton, H As RoutedEventHandler)
+        If Btn.ContextMenu IsNot Nothing Then
+            For Each it As Object In Btn.ContextMenu.Items
+                Dim mi As MyMenuItem = TryCast(it, MyMenuItem)
+                If mi IsNot Nothing Then AddHandler mi.Click, H
+            Next
+        End If
     End Sub
 
     '===============================
@@ -223,17 +233,19 @@ Public Class PageFrpMain
         End If
     End Sub
 
-    Private Sub MenuFrpClear_Click() Handles MenuFrpClear.Click
-        TxtFrpConsole.Clear()
-    End Sub
-
-    Private Sub MenuFrpFolder_Click() Handles MenuFrpFolder.Click
-        Try
-            Directory.CreateDirectory(PathFrp)
-            Process.Start(New ProcessStartInfo(PathFrp) With {.UseShellExecute = True})
-        Catch ex As Exception
-            Hint("打开目录失败：" & ex.Message, HintType.Red)
-        End Try
+    Private Sub OnFrpMenu(sender As Object, e As RoutedEventArgs)
+        Dim TagVal = CType(sender, MyMenuItem).Tag
+        Select Case If(TagVal Is Nothing, "", TagVal.ToString())
+            Case "clear"
+                TxtFrpConsole.Clear()
+            Case "folder"
+                Try
+                    Directory.CreateDirectory(PathFrp)
+                    Process.Start(New ProcessStartInfo(PathFrp) With {.UseShellExecute = True})
+                Catch ex As Exception
+                    Hint("打开目录失败：" & ex.Message, HintType.Red)
+                End Try
+        End Select
     End Sub
 
     Private Sub RefreshFrpState()

@@ -127,8 +127,8 @@
                 <local:MyButton x:Name="BtnFrpMore" Grid.Column="2" Text="更多操作" Padding="16,7" Margin="0,0,10,0">
                     <local:MyButton.ContextMenu>
                         <ContextMenu>
-                            <local:MyMenuItem x:Name="MenuFrpClear" Header="清空控制台" />
-                            <local:MyMenuItem x:Name="MenuFrpFolder" Header="打开工具目录" />
+                            <local:MyMenuItem Header="清空控制台" Tag="clear" />
+                            <local:MyMenuItem Header="打开工具目录" Tag="folder" />
                         </ContextMenu>
                     </local:MyButton.ContextMenu>
                 </local:MyButton>
