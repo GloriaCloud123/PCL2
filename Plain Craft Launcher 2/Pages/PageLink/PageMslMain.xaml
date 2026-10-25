@@ -12,13 +12,13 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" Text="服务器 MSL 方案（新手推荐）" FontSize="22" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,4" />
-        <TextBlock Grid.Row="0" Text="基于 MSL（Minecraft Server Launcher）的开服 / 联机工具，内置端口映射、P2P 与 FRP 穿透，开箱即用。"
+        <TextBlock Grid.Row="0" Text="内置 MSL 开服功能：管理服务端核心与运行环境，一键启动服务器，并在控制台中直接发送指令、查看实时输出。"
                    FontSize="13" Foreground="{StaticResource ColorBrushGray3}" Margin="0,37,0,10" TextWrapping="Wrap" />
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
             <local:MyRadioButton x:Name="BtnTabServer" Text="服务方" Margin="0,0,10,0" Padding="12,6" />
             <local:MyRadioButton x:Name="BtnTabLog" Text="日志输出" Margin="0,0,10,0" Padding="12,6" />
-            <local:MyRadioButton x:Name="BtnTabPanel" Text="服务器面板" Margin="0,0,10,0" Padding="12,6" />
+            <local:MyRadioButton x:Name="BtnTabPanel" Text="控制台" Margin="0,0,10,0" Padding="12,6" />
         </StackPanel>
 
         <!-- 服务方 -->
@@ -26,29 +26,58 @@
             <StackPanel>
                 <local:MyCard Margin="0,0,0,12">
                     <StackPanel Margin="15,13">
-                        <TextBlock Text="什么是 MSL？" FontSize="15" Foreground="{DynamicResource ColorBrush3}" />
-                        <TextBlock Text="MSL（Minecraft Server Launcher）是一套面向 Windows 的 Minecraft 开服 / 联机工具，界面友好、操作简单。它内置了多种联机方式：开服联机、FRP 局域网联机（已接入 OpenFrp、ChmlFrp 等服务商）、以及 P2P 点对点联机。本页面将其整合进 PCL，新手也能一键开服。" FontSize="13" Foreground="{StaticResource ColorBrushGray2}" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="19" />
+                        <TextBlock Text="服务端核心" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="核心文件" Width="84" VerticalAlignment="Center" />
+                            <local:MyButton x:Name="BtnMslCoreSelect" Text="选择核心文件" Padding="13,7" Margin="0,0,12,0" />
+                            <TextBlock x:Name="LabMslCore" Text="未选择核心（可在线下载原版服务端）" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="在线下载" Width="84" VerticalAlignment="Center" />
+                            <local:MyComboBox x:Name="ComboMslVersion" Width="180" Margin="0,0,10,0" ToolTip="若列表为空，请点击刷新列表" />
+                            <local:MyButton x:Name="BtnMslRefresh" Text="刷新列表" Padding="13,7" Margin="0,0,10,0" />
+                            <local:MyButton x:Name="BtnMslCoreDownload" Text="下载服务端" Padding="13,7" ColorType="Highlight" />
+                        </StackPanel>
+                        <TextBlock Text="支持原版、Forge、Fabric 等任意服务端：第三方核心请直接选择本地 jar 文件。下载完成后会自动填入核心路径，存档与配置将保存在核心所在目录。"
+                                   FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="17" />
                     </StackPanel>
                 </local:MyCard>
 
                 <local:MyCard Margin="0,0,0,12">
                     <StackPanel Margin="15,13">
-                        <TextBlock Text="第一步：获取 MSL 工具" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,4" />
-                        <TextBlock Text="点击下方按钮，从官方渠道下载 MSL 并保存到本地工具目录。" FontSize="13" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" Margin="0,0,0,10" />
-                        <local:MyButton x:Name="BtnMslDownload" Text="① 下载 MSL 工具" Padding="13,8" ColorType="Highlight" />
-
-                        <TextBlock Text="第二步：配置并启动" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,16,0,4" />
+                        <TextBlock Text="运行环境" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="服务器名称" VerticalAlignment="Center" Margin="0,0,10,0" Width="84" />
-                            <local:MyTextBox x:Name="TxtMslName" Width="240" Text="我的 Minecraft 服务器" />
+                            <TextBlock Text="Java 路径" Width="84" VerticalAlignment="Center" />
+                            <local:MyTextBox x:Name="TxtMslJava" Width="300" HintText="留空则使用系统默认 Java" Margin="0,0,10,0" />
+                            <local:MyButton x:Name="BtnMslJavaSelect" Text="浏览" Padding="13,7" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                            <TextBlock Text="游戏端口" VerticalAlignment="Center" Margin="0,0,10,0" Width="84" />
-                            <local:MyTextBox x:Name="TxtMslPort" Width="140" Text="25565" />
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="内存分配" Width="84" VerticalAlignment="Center" />
+                            <local:MyComboBox x:Name="ComboMslMemory" Width="140">
+                                <local:MyComboBoxItem Content="自动" IsSelected="True" />
+                                <local:MyComboBoxItem Content="2 GB" />
+                                <local:MyComboBoxItem Content="4 GB" />
+                                <local:MyComboBoxItem Content="6 GB" />
+                                <local:MyComboBoxItem Content="8 GB" />
+                            </local:MyComboBox>
                         </StackPanel>
-                        <local:MyButton x:Name="BtnMslStart" Text="② 启动 MSL（开服）" Padding="13,8" Margin="0,0,0,10" />
-                        <local:MyButton x:Name="BtnMslStop" Text="停止服务" Padding="13,8" ColorType="Red" />
-                        <TextBlock Text="提示：MSL 启动后会在它自己的窗口中管理服务器、映射与玩家，本启动器仅负责下载与启动，并展示运行状态。" FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="17" />
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="附加参数" Width="84" VerticalAlignment="Top" Margin="0,6,0,0" />
+                            <local:MyTextBox x:Name="TxtMslArgs" Width="300" HintText="例如 -Dfile.encoding=UTF-8" />
+                        </StackPanel>
+                    </StackPanel>
+                </local:MyCard>
+
+                <local:MyCard Margin="0,0,0,12">
+                    <StackPanel Margin="15,13">
+                        <TextBlock Text="启动控制" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                        <StackPanel Orientation="Horizontal">
+                            <local:MyButton x:Name="BtnMslStart" Text="启动服务器" Padding="20,8" ColorType="Highlight" Margin="0,0,12,0" />
+                            <local:MyButton x:Name="BtnMslStop" Text="关闭服务器" Padding="20,8" ColorType="Red" Margin="0,0,18,0" />
+                            <TextBlock x:Name="LabMslState" Text="状态：未运行" VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource ColorBrushGray2}" />
+                        </StackPanel>
+                        <TextBlock Text="启动后请切换到【控制台】页面查看实时输出并发送指令；关闭服务器时会自动向服务端发送 stop 指令以安全保存存档。"
+                                   FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="17" />
                     </StackPanel>
                 </local:MyCard>
             </StackPanel>
@@ -65,29 +94,51 @@
                      Background="{StaticResource ColorBrushBg1}" Foreground="{StaticResource ColorBrushGray1}" FontFamily="Consolas" FontSize="12" Padding="10" />
         </Grid>
 
-        <!-- 服务器面板 -->
+        <!-- 控制台 -->
         <Grid x:Name="PanPanel" Grid.Row="2" Visibility="Collapsed">
-            <StackPanel VerticalAlignment="Top" Margin="0,4,0,0">
-                <local:MyCard Margin="0,0,0,12">
-                    <StackPanel Margin="15,13">
-                        <TextBlock Text="运行状态" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="当前状态：" VerticalAlignment="Center" Width="84" Foreground="{StaticResource ColorBrushGray2}" />
-                            <TextBlock x:Name="LabMslStatus" Text="未运行" VerticalAlignment="Center" FontSize="14" Foreground="{StaticResource ColorBrushGray1}" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="进程 PID：" VerticalAlignment="Center" Width="84" Foreground="{StaticResource ColorBrushGray2}" />
-                            <TextBlock x:Name="LabMslPid" Text="—" VerticalAlignment="Center" FontSize="14" Foreground="{StaticResource ColorBrushGray1}" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="工具路径：" VerticalAlignment="Center" Width="84" Foreground="{StaticResource ColorBrushGray2}" />
-                            <TextBlock x:Name="LabMslPath" Text="—" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </StackPanel>
-                </local:MyCard>
-                <local:MyButton x:Name="BtnMslOpenFolder" Text="打开 MSL 工具目录" Padding="13,8" Margin="0,0,0,10" />
-                <local:MyButton x:Name="BtnMslStop2" Text="停止服务" Padding="13,8" ColorType="Red" />
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="2,0,0,8">
+                <TextBlock x:Name="LabMslConsState" Text="● 已停止" VerticalAlignment="Center" FontSize="13" Margin="0,0,14,0" />
+                <TextBlock x:Name="LabMslConsCore" Text="" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextTrimming="CharacterEllipsis" />
             </StackPanel>
+
+            <Border Grid.Row="1" Background="#1E1E1E" CornerRadius="8" Padding="12,10" Margin="0,0,0,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <TextBox x:Name="TxtMslConsole" Grid.Row="0" IsReadOnly="True" Background="Transparent" BorderThickness="0"
+                             Foreground="#5FD75F" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto" SelectionBrush="#3F7F3F" />
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <local:MyTextBox x:Name="TxtMslCmd" Grid.Column="0" HintText="/ (指令)，按回车或点击发送" Margin="0,0,10,0" Height="34" />
+                <local:MyButton x:Name="BtnMslSend" Grid.Column="1" Text="发送" Padding="16,7" ColorType="Highlight" Margin="0,0,10,0" />
+                <local:MyButton x:Name="BtnMslMore" Grid.Column="2" Text="更多操作" Padding="16,7" Margin="0,0,10,0">
+                    <local:MyButton.ContextMenu>
+                        <ContextMenu>
+                            <local:MyMenuItem x:Name="MenuMslClear" Header="清空控制台" />
+                            <local:MyMenuItem x:Name="MenuMslRestart" Header="重启服务器" />
+                            <local:MyMenuItem x:Name="MenuMslFolder" Header="打开服务器目录" />
+                            <local:MyMenuItem x:Name="MenuMslForce" Header="强制结束进程" />
+                        </ContextMenu>
+                    </local:MyButton.ContextMenu>
+                </local:MyButton>
+                <local:MyButton x:Name="BtnMslKill" Grid.Column="3" Text="关服" Padding="16,7" ColorType="Red" />
+            </Grid>
         </Grid>
     </Grid>
 </local:MyPageRight>

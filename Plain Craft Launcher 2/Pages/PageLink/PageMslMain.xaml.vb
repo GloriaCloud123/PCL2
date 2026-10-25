@@ -2,6 +2,8 @@ Imports System.IO
 Imports System.Net.Http
 Imports System.Text.RegularExpressions
 Imports System.Diagnostics
+Imports Microsoft.Win32
+Imports Newtonsoft.Json.Linq
 Imports PCL
 
 Public Class PageMslMain
@@ -12,17 +14,19 @@ Public Class PageMslMain
 
     Private Shared ReadOnly Client As New HttpClient()
     Private PathMsl As String = Paths.AppDataThenName & "GloriaTools\MSL\"
-    Private MslExePath As String = Nothing
+    Private MslCorePath As String = ""
     Private ProcMsl As Process = Nothing
+    Private SwMslIn As StreamWriter = Nothing
+    Private ManifestJson As String = ""
 
     Private Sub Init() Handles Me.Loaded
-        LabMslPath.Text = PathMsl
-        BtnTabServer.Checked = True '确保默认“服务方”标签页被正确高亮并显示
-        RefreshMslPanel()
+        BtnTabServer.Checked = True '确保默认服务方标签页被正确高亮并显示
+        RefreshMslState()
+        RunInNewThread(AddressOf LoadVersionsThread)
     End Sub
 
     '===============================
-    '  子功能切换（服务方 / 日志输出 / 服务器面板）
+    '  子功能切换（服务方 / 日志输出 / 控制台）
     '===============================
 
     Private Sub TabMsl_Check(sender As Object, raiseByMouse As Boolean) Handles BtnTabServer.Check, BtnTabLog.Check, BtnTabPanel.Check
@@ -32,107 +36,297 @@ Public Class PageMslMain
     End Sub
 
     '===============================
-    '  下载 MSL
+    '  服务端核心
     '===============================
 
-    Private Async Sub BtnMslDownload_Click() Handles BtnMslDownload.Click
-        BtnMslDownload.IsEnabled = False
+    Private Sub BtnMslCoreSelect_Click() Handles BtnMslCoreSelect.Click
+        Dim Dlg As New OpenFileDialog With {
+            .Title = "选择服务端核心",
+            .Filter = "服务端核心 (*.jar)|*.jar|所有文件 (*.*)|*.*"
+        }
+        If Dlg.ShowDialog() <> True Then Return
+        MslCorePath = Dlg.FileName
+        LabMslCore.Text = MslCorePath
+        LabMslCore.ToolTip = MslCorePath
+        LogMsl("已选择核心文件：" & MslCorePath)
+    End Sub
+
+    Private Sub BtnMslRefresh_Click() Handles BtnMslRefresh.Click
+        RunInNewThread(AddressOf LoadVersionsThread)
+    End Sub
+
+    Private Sub LoadVersionsThread()
         Try
-            LogMsl("开始获取 MSL 下载地址……")
-            Dim Url As String = Await GetMslUrlAsync()
-            LogMsl("下载地址：" & Url)
-            Directory.CreateDirectory(PathMsl)
-            Dim Temp As String = PathMsl & "MSL_dl.tmp"
-            If File.Exists(Temp) Then File.Delete(Temp)
-            Await DownloadFileAsync(Url, Temp, Sub(d, t) RunInUi(Sub() LogMsl($"下载中… {d \ 1024} / {t \ 1024} KB")))
-            LogMsl("下载完成，正在处理……")
-            If IsZip(Temp) Then
-                ExtractZip(Temp, PathMsl)
-                File.Delete(Temp)
-                Dim Exe = FindMainExe(PathMsl)
-                If Exe Is Nothing Then Throw New Exception("解压后未找到 MSL 主程序，请手动到工具目录查看。")
-                MslExePath = Exe
-                LogMsl("已就绪：" & Exe)
-                Hint("MSL 下载并解压完成！", HintType.Green)
-            Else
-                MslExePath = PathMsl & "MSL_setup.exe"
-                If File.Exists(MslExePath) Then File.Delete(MslExePath)
-                File.Move(Temp, MslExePath)
-                LogMsl("已下载安装包：MSL_setup.exe。点击""启动 MSL""运行安装 / 启动。")
-                Hint("MSL 下载完成（安装包）！", HintType.Green)
-            End If
+            LogMsl("正在获取版本列表……")
+            ManifestJson = Client.GetStringAsync("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json").GetAwaiter().GetResult()
+            Dim Job As JObject = JObject.Parse(ManifestJson)
+            Dim Names As New List(Of String)
+            For Each v As JToken In Job("versions")
+                If v("type") IsNot Nothing AndAlso v("type").ToString() = "release" Then Names.Add(v("id").ToString())
+                If Names.Count >= 80 Then Exit For
+            Next
+            RunInUi(Sub()
+                        ComboMslVersion.Items.Clear()
+                        For Each N As String In Names
+                            ComboMslVersion.Items.Add(N)
+                        Next
+                        If ComboMslVersion.Items.Count > 0 Then ComboMslVersion.SelectedIndex = 0
+                    End Sub)
+            LogMsl("版本列表获取完成，共 " & Names.Count & " 个正式版。")
         Catch ex As Exception
-            LogMsl("下载失败：" & ex.Message)
-            Hint("MSL 下载失败，请查看日志。", HintType.Red)
-        Finally
-            BtnMslDownload.IsEnabled = True
-            RunInUi(AddressOf RefreshMslPanel)
+            RunInUi(Sub() LogMsl("版本列表获取失败：" & ex.Message))
         End Try
+    End Sub
+
+    Private Sub BtnMslCoreDownload_Click() Handles BtnMslCoreDownload.Click
+        If ComboMslVersion.SelectedItem Is Nothing Then
+            Hint("请先刷新并选择一个版本！", HintType.Red) : Return
+        End If
+        Dim Ver As String = ComboMslVersion.SelectedItem.ToString()
+        BtnMslCoreDownload.IsEnabled = False
+        RunInNewThread(Sub()
+                           Try
+                               If String.IsNullOrEmpty(ManifestJson) Then Throw New Exception("版本列表尚未加载，请先刷新列表")
+                               LogMsl("正在获取版本信息：" & Ver & " ……")
+                               Dim Job As JObject = JObject.Parse(ManifestJson)
+                               Dim Url As String = ""
+                               For Each v As JToken In Job("versions")
+                                   If v("id") IsNot Nothing AndAlso v("id").ToString() = Ver Then
+                                       Url = v("url").ToString()
+                                       Exit For
+                                   End If
+                               Next
+                               If Url = "" Then Throw New Exception("未找到该版本的信息")
+                               Dim VJson As String = Client.GetStringAsync(Url).GetAwaiter().GetResult()
+                               Dim VJob As JObject = JObject.Parse(VJson)
+                               Dim DlUrl As String = VJob("downloads")("server")("url").ToString()
+                               Dim Dir As String = PathMsl & "Server\" & Ver & "\"
+                               Dim Dest As String = Dir & "server.jar"
+                               Directory.CreateDirectory(Dir)
+                               LogMsl("开始下载服务端（" & Ver & "）……")
+                               DownloadFile(DlUrl, Dest)
+                               MslCorePath = Dest
+                               RunInUi(Sub()
+                                           LabMslCore.Text = Dest
+                                           LabMslCore.ToolTip = Dest
+                                           LabMslConsCore.Text = Dest
+                                           LogMsl("服务端已就绪：" & Dest)
+                                           Hint("服务端下载完成！", HintType.Green)
+                                           BtnMslCoreDownload.IsEnabled = True
+                                       End Sub)
+                           Catch ex As Exception
+                               RunInUi(Sub()
+                                           LogMsl("服务端下载失败：" & ex.Message)
+                                           Hint("服务端下载失败，请查看日志输出。", HintType.Red)
+                                           BtnMslCoreDownload.IsEnabled = True
+                                       End Sub)
+                           End Try
+                       End Sub)
+    End Sub
+
+    '===============================
+    '  运行环境
+    '===============================
+
+    Private Sub BtnMslJavaSelect_Click() Handles BtnMslJavaSelect.Click
+        Dim Dlg As New OpenFileDialog With {
+            .Title = "选择 Java 运行时",
+            .Filter = "Java 运行时 (*.exe)|*.exe|所有文件 (*.*)|*.*"
+        }
+        If Dlg.ShowDialog() <> True Then Return
+        TxtMslJava.Text = Dlg.FileName
     End Sub
 
     '===============================
     '  启动 / 停止
     '===============================
 
+    Private Function IsRunning() As Boolean
+        Return ProcMsl IsNot Nothing AndAlso Not ProcMsl.HasExited
+    End Function
+
     Private Sub BtnMslStart_Click() Handles BtnMslStart.Click
-        If ProcMsl IsNot Nothing AndAlso Not ProcMsl.HasExited Then
-            Hint("MSL 已在运行！", HintType.Blue) : Return
+        If IsRunning() Then
+            Hint("服务器已在运行中！", HintType.Blue) : Return
         End If
-        Dim Exe = MslExePath
-        If String.IsNullOrEmpty(Exe) OrElse Not File.Exists(Exe) Then
-            Hint("请先在""服务方""中下载 MSL 工具！", HintType.Red) : Return
+        If String.IsNullOrEmpty(MslCorePath) OrElse Not File.Exists(MslCorePath) Then
+            Hint("请先选择或下载服务端核心！", HintType.Red) : Return
         End If
         Try
-            Dim ServerName As String = If(String.IsNullOrWhiteSpace(TxtMslName.Text), "我的服务器", TxtMslName.Text)
-            Dim ServerPort As String = If(String.IsNullOrWhiteSpace(TxtMslPort.Text), "25565", TxtMslPort.Text)
-            LogMsl($"准备启动 MSL（名称：{ServerName}，端口：{ServerPort}）……")
+            Dim Java As String = TxtMslJava.Text.Trim()
+            If Java = "" Then Java = "java"
+            Dim Args As String = ""
+            Dim MemItem = TryCast(ComboMslMemory.SelectedItem, ComboBoxItem)
+            Dim Mem As String = If(MemItem IsNot Nothing, MemItem.Content.ToString(), "自动")
+            If Mem <> "自动" Then Args &= "-Xmx" & Mem.Replace(" ", "") & " "
+            Dim Extra As String = TxtMslArgs.Text.Trim()
+            If Extra <> "" Then Args &= Extra & " "
+            Args &= "-jar """ & MslCorePath & """ nogui"
             Dim Info = New ProcessStartInfo With {
-                .FileName = Exe,
-                .WorkingDirectory = PathMsl,
+                .FileName = Java,
+                .Arguments = Args,
+                .WorkingDirectory = Path.GetDirectoryName(MslCorePath),
                 .UseShellExecute = False,
-                .CreateNoWindow = False,
+                .CreateNoWindow = True,
                 .RedirectStandardOutput = True,
                 .RedirectStandardError = True,
+                .RedirectStandardInput = True,
                 .StandardOutputEncoding = Encoding.UTF8,
                 .StandardErrorEncoding = Encoding.UTF8
             }
             ProcMsl = New Process With {.StartInfo = Info, .EnableRaisingEvents = True}
-            AddHandler ProcMsl.OutputDataReceived, Sub(s, e) If e.Data IsNot Nothing Then LogMsl(e.Data)
-            AddHandler ProcMsl.ErrorDataReceived, Sub(s, e) If e.Data IsNot Nothing Then LogMsl("[ERR] " & e.Data)
-            AddHandler ProcMsl.Exited, Sub(s, e) RunInUi(Sub() RefreshMslPanel())
+            AddHandler ProcMsl.OutputDataReceived, Sub(s, e) If e.Data IsNot Nothing Then ConsMsl(e.Data)
+            AddHandler ProcMsl.ErrorDataReceived, Sub(s, e) If e.Data IsNot Nothing Then ConsMsl(e.Data)
+            AddHandler ProcMsl.Exited, Sub(s, e)
+                                           SwMslIn = Nothing
+                                           RunInUi(Sub() ConsMsl("[服务器已退出]"))
+                                           RunInUi(AddressOf RefreshMslState)
+                                       End Sub
             ProcMsl.Start()
+            SwMslIn = ProcMsl.StandardInput
             ProcMsl.BeginOutputReadLine()
             ProcMsl.BeginErrorReadLine()
-            LogMsl("已启动 MSL：" & Exe)
-            Hint("MSL 已启动！", HintType.Green)
+            LogMsl("已启动服务器：" & MslCorePath)
+            LogMsl("启动命令：" & Java & " " & Args)
+            ConsMsl("[GloriaCloud] 服务器已启动，可在下方输入指令。")
+            Hint("服务器已启动！", HintType.Green)
         Catch ex As Exception
             LogMsl("启动失败：" & ex.Message)
-            Hint("MSL 启动失败：" & ex.Message, HintType.Red)
+            Hint("服务器启动失败：" & ex.Message, HintType.Red)
         End Try
-        RunInUi(AddressOf RefreshMslPanel)
+        RefreshMslState()
     End Sub
 
-    Private Sub BtnMslStop_Click() Handles BtnMslStop.Click, BtnMslStop2.Click
-        StopMsl()
+    Private Sub BtnMslStop_Click() Handles BtnMslStop.Click
+        StopServer(False)
     End Sub
-    Private Sub StopMsl()
+
+    Private Sub StopServer(Force As Boolean)
+        If Not IsRunning() Then
+            Hint("服务器未在运行。", HintType.Blue) : Return
+        End If
         Try
-            If ProcMsl IsNot Nothing AndAlso Not ProcMsl.HasExited Then
+            If Force Then
                 ProcMsl.Kill()
-                LogMsl("已停止 MSL。")
+                ConsMsl("[服务器进程已被强制结束]")
+                LogMsl("已强制结束服务器进程。")
             Else
-                LogMsl("MSL 并未运行。")
+                If SwMslIn IsNot Nothing Then
+                    SwMslIn.WriteLine("stop")
+                    ConsMsl("[指令] stop（已发送关服指令，等待服务器安全退出……）")
+                    LogMsl("已发送关服指令。")
+                    Hint("已发送关服指令，存档将自动保存。", HintType.Blue)
+                Else
+                    ProcMsl.Kill()
+                End If
             End If
         Catch ex As Exception
             LogMsl("停止失败：" & ex.Message)
-        Finally
-            ProcMsl = Nothing
-            RunInUi(AddressOf RefreshMslPanel)
         End Try
     End Sub
 
+    '===============================
+    '  控制台
+    '===============================
+
+    Private Sub BtnMslSend_Click() Handles BtnMslSend.Click
+        SendCmd()
+    End Sub
+
+    Private Sub TxtMslCmd_KeyDown(sender As Object, e As KeyEventArgs) Handles TxtMslCmd.KeyDown
+        If e.Key = Key.Enter Then SendCmd()
+    End Sub
+
+    Private Sub SendCmd()
+        Dim Cmd As String = TxtMslCmd.Text
+        If String.IsNullOrWhiteSpace(Cmd) Then Return
+        If Not IsRunning() OrElse SwMslIn Is Nothing Then
+            Hint("服务器尚未运行，无法发送指令。", HintType.Red) : Return
+        End If
+        Try
+            SwMslIn.WriteLine(Cmd)
+            ConsMsl("[指令] " & Cmd)
+            TxtMslCmd.Text = ""
+        Catch ex As Exception
+            Hint("指令发送失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    Private Sub BtnMslKill_Click() Handles BtnMslKill.Click
+        StopServer(False)
+    End Sub
+
+    Private Sub BtnMslMore_Click() Handles BtnMslMore.Click
+        If BtnMslMore.ContextMenu IsNot Nothing Then
+            BtnMslMore.ContextMenu.PlacementTarget = BtnMslMore
+            BtnMslMore.ContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Top
+            BtnMslMore.ContextMenu.IsOpen = True
+        End If
+    End Sub
+
+    Private Sub MenuMslClear_Click() Handles MenuMslClear.Click
+        TxtMslConsole.Clear()
+    End Sub
+
+    Private Sub MenuMslRestart_Click() Handles MenuMslRestart.Click
+        If IsRunning() Then
+            Hint("请先关闭服务器，再进行重启。", HintType.Blue) : Return
+        End If
+        BtnMslStart_Click()
+    End Sub
+
+    Private Sub MenuMslFolder_Click() Handles MenuMslFolder.Click
+        Try
+            Dim Dir As String = If(String.IsNullOrEmpty(MslCorePath), PathMsl, Path.GetDirectoryName(MslCorePath))
+            Directory.CreateDirectory(Dir)
+            Process.Start(New ProcessStartInfo(Dir) With {.UseShellExecute = True})
+        Catch ex As Exception
+            Hint("打开目录失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    Private Sub MenuMslForce_Click() Handles MenuMslForce.Click
+        StopServer(True)
+        RefreshMslState()
+    End Sub
+
+    '===============================
+    '  状态 / 日志
+    '===============================
+
+    Private Sub RefreshMslState()
+        If IsRunning() Then
+            LabMslState.Text = "状态：运行中（PID " & ProcMsl.Id & "）"
+            LabMslConsState.Text = "● 运行中"
+            LabMslConsState.Foreground = New SolidColorBrush(Color.FromRgb(76, 200, 90))
+        Else
+            LabMslState.Text = "状态：未运行"
+            LabMslConsState.Text = "● 已停止"
+            LabMslConsState.Foreground = New SolidColorBrush(Color.FromRgb(150, 150, 150))
+        End If
+        If LabMslConsCore.Text = "" AndAlso MslCorePath <> "" Then LabMslConsCore.Text = MslCorePath
+    End Sub
+
+    Private Sub BtnMslLogClear_Click() Handles BtnMslLogClear.Click
+        TxtMslLog.Clear()
+    End Sub
+
+    Private Sub LogMsl(Line As String)
+        RunInUi(Sub()
+                    TxtMslLog.AppendText("[" & Date.Now.ToString("HH:mm:ss") & "] " & Line & vbCrLf)
+                    TxtMslLog.ScrollToEnd()
+                End Sub)
+    End Sub
+
+    Private Sub ConsMsl(Line As String)
+        RunInUi(Sub()
+                    TxtMslConsole.AppendText(Line & vbCrLf)
+                    TxtMslConsole.ScrollToEnd()
+                End Sub)
+    End Sub
+
     ''' <summary>
-    ''' 关闭启动时强制结束 MSL 进程。
+    ''' 关闭启动器时强制结束服务器进程。
     ''' </summary>
     Public Sub KillOnExit()
         Try
@@ -142,104 +336,26 @@ Public Class PageMslMain
         ProcMsl = Nothing
     End Sub
 
-    Private Sub BtnMslOpenFolder_Click() Handles BtnMslOpenFolder.Click
-        Try
-            Directory.CreateDirectory(PathMsl)
-            Process.Start(New ProcessStartInfo(PathMsl) With {.UseShellExecute = True})
-        Catch ex As Exception
-            LogMsl("打开目录失败：" & ex.Message)
-        End Try
-    End Sub
-    Private Sub BtnMslLogClear_Click() Handles BtnMslLogClear.Click
-        TxtMslLog.Clear()
-    End Sub
-
     '===============================
-    '  服务器面板
+    '  下载辅助
     '===============================
 
-    Private Sub RefreshMslPanel()
-        If ProcMsl IsNot Nothing AndAlso Not ProcMsl.HasExited Then
-            LabMslStatus.Text = "运行中"
-            LabMslPid.Text = ProcMsl.Id.ToString()
-        Else
-            LabMslStatus.Text = "未运行"
-            LabMslPid.Text = "—"
-        End If
-        LabMslPath.Text = PathMsl
-    End Sub
-
-    '===============================
-    '  日志
-    '===============================
-
-    Private Sub LogMsl(line As String)
-        RunInUi(Sub()
-                    TxtMslLog.AppendText(line & vbCrLf)
-                    TxtMslLog.ScrollToEnd()
-                End Sub)
-    End Sub
-
-    '===============================
-    '  下载 / 解压 辅助
-    '===============================
-
-    Private Async Function DownloadFileAsync(Url As String, Dest As String, OnProgress As Action(Of Long, Long)) As Task
+    Private Sub DownloadFile(Url As String, Dest As String)
         Directory.CreateDirectory(Path.GetDirectoryName(Dest))
-        Using Resp = Await Client.GetAsync(Url, HttpCompletionOption.ResponseHeadersRead)
+        Using Resp = Client.GetAsync(Url, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult()
             Resp.EnsureSuccessStatusCode()
-            Dim Total = Resp.Content.Headers.ContentLength
             Using FS = File.Create(Dest)
-                Using Stream = Await Resp.Content.ReadAsStreamAsync()
+                Using Stream = Resp.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
                     Dim Buf(8191) As Byte
-                    Dim Read As Integer, Done As Long = 0
-                    Do While (Read = Await Stream.ReadAsync(Buf, 0, Buf.Length)) > 0
-                        Await FS.WriteAsync(Buf, 0, Read)
-                        Done += Read
-                        If Total.HasValue Then OnProgress(Done, Total.Value)
+                    Dim N As Integer
+                    Do
+                        N = Stream.Read(Buf, 0, Buf.Length)
+                        If N <= 0 Then Exit Do
+                        FS.Write(Buf, 0, N)
                     Loop
                 End Using
             End Using
         End Using
-    End Function
-
-    Private Async Function GetMslUrlAsync() As Task(Of String)
-        '优先：GitHub Releases（第一个含有 exe/zip 资源的版本）
-        Try
-            Dim Json = Await Client.GetStringAsync("https://api.github.com/repos/MSLTeam/MSL/releases")
-            Dim Matches = Regex.Matches(Json, """browser_download_url""\s*:\s*""(?<u>[^""]+\.(?:exe|zip))""")
-            If Matches.Count > 0 Then Return Matches(0).Groups("u").Value.Replace("\/", "/")
-        Catch ex As Exception
-            LogMsl("GitHub 获取失败，改用官网直链：" & ex.Message)
-        End Try
-        '兜底：官网直链
-        Return "https://api.mslmc.cn/v3/download/update?direct=true"
-    End Function
-
-    Private Function IsZip(Path As String) As Boolean
-        Try
-            Dim Head(3) As Byte
-            Using FS = File.OpenRead(Path)
-                If FS.Read(Head, 0, 4) < 4 Then Return False
-            End Using
-            Return Head(0) = &H50 AndAlso Head(1) = &H4B AndAlso Head(2) = &H3 AndAlso Head(3) = &H4
-        Catch
-            Return False
-        End Try
-    End Function
-
-    Private Sub ExtractZip(Source As String, TargetDir As String)
-        Directory.CreateDirectory(TargetDir)
-        System.IO.Compression.ZipFile.ExtractToDirectory(Source, TargetDir)
     End Sub
-
-    Private Function FindMainExe(Root As String) As String
-        Dim First As String = Nothing
-        For Each F In Directory.EnumerateFiles(Root, "*.exe", SearchOption.AllDirectories)
-            If Path.GetFileName(F).IndexOf("MSL", StringComparison.OrdinalIgnoreCase) >= 0 Then Return F
-            If First Is Nothing Then First = F
-        Next
-        Return First
-    End Function
 
 End Class
