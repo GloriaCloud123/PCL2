@@ -70,6 +70,7 @@ Public Class PageMslMain
         End If
         LoadInstances()
         LoadSettings()
+        UpdateCreateMode()
         RefreshMslState()
         '仅在尚未加载过版本列表时才联网拉取，避免重复请求
         If ComboCreateVersion.Items.Count = 0 Then RunInNewThread(AddressOf LoadVersionsThread)
@@ -236,6 +237,52 @@ Public Class PageMslMain
     '  新建服务器
     '===============================
 
+    '开服模式切换：快速模式只留名称/类型/内存；自定义模式显示全部；整合包模式只留名称与整合包文件
+    Private Sub ComboCreateMode_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles ComboCreateMode.SelectionChanged
+        UpdateCreateMode()
+    End Sub
+
+    Private Sub UpdateCreateMode()
+        If RowCreateVersion Is Nothing Then Return
+        Dim M = ComboText(ComboCreateMode)
+        If M.StartsWith("快速") Then
+            RowCreateType.Visibility = Visibility.Visible
+            RowCreateMemory.Visibility = Visibility.Visible
+            RowCreateVersion.Visibility = Visibility.Collapsed
+            RowCreateLocal.Visibility = Visibility.Collapsed
+            RowCreateJava.Visibility = Visibility.Collapsed
+            RowCreateModpack.Visibility = Visibility.Collapsed
+            LabCreateModeHint.Text = "自动下载所选类型最新核心，填好名字即可一键开服。"
+        ElseIf M.StartsWith("导入") Then
+            RowCreateType.Visibility = Visibility.Collapsed
+            RowCreateMemory.Visibility = Visibility.Visible
+            RowCreateVersion.Visibility = Visibility.Collapsed
+            RowCreateLocal.Visibility = Visibility.Collapsed
+            RowCreateJava.Visibility = Visibility.Collapsed
+            RowCreateModpack.Visibility = Visibility.Visible
+            LabCreateModeHint.Text = "选择服务端整合包 zip，解压后自动识别核心（如 Forge/Fabric 的 run.bat 或 server.jar）。"
+        Else
+            RowCreateType.Visibility = Visibility.Visible
+            RowCreateMemory.Visibility = Visibility.Visible
+            RowCreateVersion.Visibility = Visibility.Visible
+            RowCreateLocal.Visibility = Visibility.Visible
+            RowCreateJava.Visibility = Visibility.Visible
+            RowCreateModpack.Visibility = Visibility.Collapsed
+            LabCreateModeHint.Text = "可手动选择版本、本地核心与 Java，操作自由度最高。"
+        End If
+    End Sub
+
+    Private Sub BtnCreateModpack_Click() Handles BtnCreateModpack.Click
+        Dim Dlg As New OpenFileDialog With {
+            .Title = "选择服务端整合包",
+            .Filter = "整合包压缩包 (*.zip)|*.zip|所有文件 (*.*)|*.*"
+        }
+        If Dlg.ShowDialog() <> True Then Return
+        TxtCreateName.Tag = Dlg.FileName
+        LabCreateModpack.Text = Dlg.FileName
+        LogMsl("已选择整合包：" & Dlg.FileName)
+    End Sub
+
     Private Sub BtnCreateRefresh_Click() Handles BtnCreateRefresh.Click
         RunInNewThread(AddressOf LoadVersionsThread)
     End Sub
@@ -281,35 +328,16 @@ Public Class PageMslMain
 
     Private Sub BtnCreateDownload_Click() Handles BtnCreateDownload.Click
         Dim Ver = ComboText(ComboCreateVersion)
-        If Ver = "" Then
-            Hint("请先刷新并选择一个版本！", HintType.Red) : Return
-        End If
+        Dim T = ComboText(ComboCreateType)
         BtnCreateDownload.IsEnabled = False
         RunInNewThread(Sub()
                            Try
-                               If String.IsNullOrEmpty(ManifestJson) Then Throw New Exception("版本列表尚未加载，请先刷新列表")
-                               LogMsl("正在获取版本信息：" & Ver & " ……")
-                               Dim Job As JObject = JObject.Parse(ManifestJson)
-                               Dim Url As String = ""
-                               For Each v As JToken In Job("versions")
-                                   If v("id") IsNot Nothing AndAlso v("id").ToString() = Ver Then
-                                       Url = v("url").ToString()
-                                       Exit For
-                                   End If
-                               Next
-                               If Url = "" Then Throw New Exception("未找到该版本的信息")
-                               Dim VJson As String = Client.GetStringAsync(Url).GetAwaiter().GetResult()
-                               Dim VJob As JObject = JObject.Parse(VJson)
-                               Dim DlUrl As String = VJob("downloads")("server")("url").ToString()
-                               Dim Dir As String = PathServers & Ver & "\"
-                               Dim Dest As String = Dir & "server.jar"
-                               Directory.CreateDirectory(Dir)
-                               LogMsl("开始下载服务端核心（" & Ver & "）……")
-                               DownloadFile(DlUrl, Dest)
+                               Dim Dir As String = PathServers & "_cache\"
+                               Dim Core As String = DownloadCore(T, Ver, Dir)
                                RunInUi(Sub()
-                                           TxtCreateName.Tag = Dest
-                                           LabCreateCore.Text = Dest
-                                           LogMsl("核心已就绪：" & Dest)
+                                           TxtCreateName.Tag = Core
+                                           LabCreateCore.Text = Core
+                                           LogMsl("核心已就绪：" & Core)
                                            Hint("核心下载完成！填写实例名称后点击「创建实例」。", HintType.Green)
                                            BtnCreateDownload.IsEnabled = True
                                        End Sub)
@@ -323,32 +351,269 @@ Public Class PageMslMain
                        End Sub)
     End Sub
 
+    ''' <summary>
+    ''' 按服务器类型下载/安装服务端核心到 DestDir，返回可直接用于启动的核心路径。
+    ''' 支持：原版(Mojang) / Paper插件 / Velocity代理 / Fabric(混合与纯模组) / Forge安装器 / NeoForge安装器 / 基岩版BDS。
+    ''' </summary>
+    Private Function DownloadCore(T As String, Ver As String, DestDir As String) As String
+        Directory.CreateDirectory(DestDir)
+        If T.Contains("Fabric") Then
+            Dim Game As String = If(Ver = "", LatestVanilla(), Ver)
+            LogMsl("正在获取 Fabric 加载器信息……")
+            Dim Loaders = JArray.Parse(Client.GetStringAsync("https://meta.fabricmc.net/v2/versions/loader").GetAwaiter().GetResult())
+            Dim Loader As String = Loaders(0)("version").ToString()
+            Dim Installers = JArray.Parse(Client.GetStringAsync("https://meta.fabricmc.net/v2/versions/installer").GetAwaiter().GetResult())
+            Dim Inst As String = Installers(0)("version").ToString()
+            Dim Url As String = $"https://meta.fabricmc.net/v2/versions/loader/{Game}/{Loader}/{Inst}/server/jar"
+            Dim Dest As String = DestDir & "fabric-server-" & Game & ".jar"
+            LogMsl("开始下载 Fabric 服务端（游戏版本 " & Game & "，加载器 " & Loader & "）……")
+            DownloadFile(Url, Dest)
+            Return Dest
+        ElseIf T = "插件服务器" Then
+            'PaperMC（Java 版插件服务端）
+            Return DownloadPaperLike("paper", Ver, DestDir, "paper")
+        ElseIf T = "代理服务器" Then
+            'Velocity 代理（PaperMC 同一套 API）
+            Return DownloadPaperLike("velocity", "", DestDir, "velocity")
+        ElseIf T.Contains("Forge") Then
+            'Forge：下载官方安装器并静默安装（生成 run.bat 与 libraries）
+            Return InstallForgeLike("forge", Ver, DestDir)
+        ElseIf T.Contains("NeoForge") Then
+            Return InstallForgeLike("neoforge", Ver, DestDir)
+        ElseIf T = "基岩版服务器" Then
+            LogMsl("正在获取基岩版服务端（BDS）下载地址……")
+            Dim Html As String = Client.GetStringAsync("https://www.minecraft.net/en-us/download/server/bedrock").GetAwaiter().GetResult()
+            Dim M As Match = Regex.Match(Html, "https://[^""' ]*bin-win/bedrock-server-[\d.]+\.zip")
+            If Not M.Success Then Throw New Exception("未能从官网解析到 BDS 下载地址（页面结构可能已变化）")
+            Dim ZipPath As String = DestDir & "bedrock-server.zip"
+            LogMsl("开始下载 BDS：" & M.Value)
+            DownloadFile(M.Value, ZipPath)
+            ExtractZip(ZipPath, DestDir)
+            File.Delete(ZipPath)
+            Dim Exe As String = DestDir & "bedrock_server.exe"
+            If Not File.Exists(Exe) Then Throw New Exception("BDS 解压后未找到 bedrock_server.exe")
+            Return Exe
+        Else
+            '原版服务器（Mojang 官方清单）
+            If String.IsNullOrEmpty(ManifestJson) Then
+                LogMsl("正在获取版本列表……")
+                ManifestJson = Client.GetStringAsync("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json").GetAwaiter().GetResult()
+            End If
+            If Ver = "" Then Ver = LatestVanilla()
+            Dim Job As JObject = JObject.Parse(ManifestJson)
+            Dim Url As String = ""
+            For Each v As JToken In Job("versions")
+                If v("id") IsNot Nothing AndAlso v("id").ToString() = Ver Then
+                    Url = v("url").ToString()
+                    Exit For
+                End If
+            Next
+            If Url = "" Then Throw New Exception("未找到该版本的信息")
+            Dim VJob As JObject = JObject.Parse(Client.GetStringAsync(Url).GetAwaiter().GetResult())
+            Dim DlUrl As String = VJob("downloads")("server")("url").ToString()
+            Dim Dest As String = DestDir & "server-" & Ver & ".jar"
+            LogMsl("开始下载原版服务端核心（" & Ver & "）……")
+            DownloadFile(DlUrl, Dest)
+            Return Dest
+        End If
+    End Function
+
+    'PaperMC 系（paper/velocity）：取最新版本最新构建
+    Private Function DownloadPaperLike(Project As String, Ver As String, DestDir As String, Label As String) As String
+        LogMsl("正在获取 " & Label & " 版本信息……")
+        Dim Job As JObject = JObject.Parse(Client.GetStringAsync("https://api.papermc.io/v2/projects/" & Project).GetAwaiter().GetResult())
+        Dim Versions As JArray = Job("versions")
+        Dim V As String = If(Ver = "", Versions(Versions.Count - 1).ToString(), Ver)
+        Dim Builds As JObject = JObject.Parse(Client.GetStringAsync($"https://api.papermc.io/v2/projects/{Project}/versions/{V}/builds").GetAwaiter().GetResult())
+        Dim Bs As JArray = Builds("builds")
+        Dim B As JObject = Bs(Bs.Count - 1)
+        Dim Name As String = B("downloads")("application")("name").ToString()
+        Dim Url As String = $"https://api.papermc.io/v2/projects/{Project}/versions/{V}/builds/{B("build")}/downloads/{Name}"
+        Dim Dest As String = DestDir & Name
+        LogMsl("开始下载 " & Label & " 核心（" & V & " 构建 " & B("build").ToString() & "）……")
+        DownloadFile(Url, Dest)
+        Return Dest
+    End Function
+
+    'Forge / NeoForge：下载安装器并静默安装到 DestDir，返回 run.bat
+    Private Function InstallForgeLike(Kind As String, Ver As String, DestDir As String) As String
+        Dim InstallerUrl As String = "", FullVer As String = ""
+        If Kind = "forge" Then
+            LogMsl("正在获取 Forge 推荐版本……")
+            Dim Promo As JObject = JObject.Parse(Client.GetStringAsync("https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json").GetAwaiter().GetResult())
+            Dim Promos As JObject = Promo("promos")
+            Dim Game As String = If(Ver = "", LatestVanilla(), Ver)
+            FullVer = If(Promos(Game & "-recommended") IsNot Nothing, Promos(Game & "-recommended").ToString(), If(Promos(Game & "-latest") IsNot Nothing, Promos(Game & "-latest").ToString(), ""))
+            If FullVer = "" Then FullVer = Promos("1.20.1-recommended").ToString() '回退到长期支持版
+            InstallerUrl = $"https://maven.minecraftforge.net/net/minecraftforge/forge/{Game}-{FullVer}/forge-{Game}-{FullVer}-installer.jar"
+        Else
+            LogMsl("正在获取 NeoForge 最新版本……")
+            Dim Vers As JArray = JArray.Parse(Client.GetStringAsync("https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge").GetAwaiter().GetResult())("versions")
+            FullVer = Vers(Vers.Count - 1).ToString()
+            InstallerUrl = $"https://maven.neoforged.net/releases/net/neoforged/neoforge/{FullVer}/neoforge-{FullVer}-installer.jar"
+        End If
+        Dim InstJar As String = DestDir & "installer.jar"
+        LogMsl("开始下载安装器（" & FullVer & "）……")
+        DownloadFile(InstallerUrl, InstJar)
+        LogMsl("正在静默安装服务端（可能需要几分钟，请耐心等待）……")
+        Dim Java As String = If(TxtCreateJava.Text.Trim() <> "", TxtCreateJava.Text.Trim(), If(TxtSetJava.Text.Trim() <> "", TxtSetJava.Text.Trim(), "java"))
+        Dim P = Process.Start(New ProcessStartInfo With {
+            .FileName = Java, .Arguments = "-jar """ & InstJar & """ --installServer", .WorkingDirectory = DestDir,
+            .UseShellExecute = False, .CreateNoWindow = True})
+        If Not P.WaitForExit(600000) Then
+            Try : P.Kill() : Catch : End Try
+            Throw New Exception("安装超时（10 分钟）")
+        End If
+        If P.ExitCode <> 0 Then Throw New Exception("安装器退出码 " & P.ExitCode & "，请检查 Java 版本是否符合核心要求")
+        Dim Bat As String = DestDir & "run.bat"
+        If File.Exists(Bat) Then
+            File.Delete(InstJar)
+            LogMsl("安装完成：" & Bat)
+            Return Bat
+        End If
+        '老版本安装器直接生成核心 jar
+        Dim Jars = Directory.GetFiles(DestDir, "*.jar").Where(Function(f) Path.GetFileName(f) <> "installer.jar").ToArray()
+        If Jars.Length > 0 Then
+            File.Delete(InstJar)
+            Return Jars(0)
+        End If
+        Throw New Exception("安装完成但未找到可启动的核心（run.bat 或 jar）")
+    End Function
+
+    Private Function LatestVanilla() As String
+        If String.IsNullOrEmpty(ManifestJson) Then
+            ManifestJson = Client.GetStringAsync("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json").GetAwaiter().GetResult()
+        End If
+        Dim Job As JObject = JObject.Parse(ManifestJson)
+        For Each v As JToken In Job("versions")
+            If v("type") IsNot Nothing AndAlso v("type").ToString() = "release" Then Return v("id").ToString()
+        Next
+        Throw New Exception("无法获取最新原版版本")
+    End Function
+
+    '安全解压 zip（防路径穿越）
+    Private Sub ExtractZip(ZipPath As String, DestDir As String)
+        Directory.CreateDirectory(DestDir)
+        Dim Root As String = Path.GetFullPath(DestDir)
+        Using Zip As New ZipArchive(File.OpenRead(ZipPath), ZipArchiveMode.Read)
+            For Each E As ZipArchiveEntry In Zip.Entries
+                Dim Target As String = Path.GetFullPath(Path.Combine(DestDir, E.FullName))
+                If Not Target.StartsWith(Root, StringComparison.OrdinalIgnoreCase) Then Continue For
+                If E.FullName.EndsWith("/") OrElse E.FullName.EndsWith("\") Then
+                    Directory.CreateDirectory(Target)
+                Else
+                    Directory.CreateDirectory(Path.GetDirectoryName(Target))
+                    E.ExtractToFile(Target, True)
+                End If
+            Next
+        End Using
+    End Sub
+
     Private Sub BtnCreateOk_Click() Handles BtnCreateOk.Click
         Dim Name As String = TxtCreateName.Text.Trim()
         If Name = "" Then
             Hint("请先填写实例名称！", HintType.Red) : Return
         End If
-        Dim Core = If(TxtCreateName.Tag Is Nothing, "", TxtCreateName.Tag.ToString())
-        If Core = "" OrElse Not File.Exists(Core) Then
-            Hint("请先下载核心或选择本地 jar 文件！", HintType.Red) : Return
-        End If
         If Instances.Any(Function(x) x.Name = Name) Then
             Hint("已存在同名实例，请换一个名称。", HintType.Red) : Return
         End If
-        '把核心复制进实例目录，保证每个实例独立
-        Dim Dir As String = PathServers & Name & "\"
-        Dim Dest As String = Dir & Path.GetFileName(Core)
-        Try
-            Directory.CreateDirectory(Dir)
-            If Path.GetDirectoryName(Core) <> Dir Then File.Copy(Core, Dest, True)
-        Catch ex As Exception
+        Dim M = ComboText(ComboCreateMode)
+        If M.StartsWith("导入") Then
+            '导入整合包模式：解压 zip → 自动识别核心 → 建实例
+            Dim Pack = If(TxtCreateName.Tag Is Nothing, "", TxtCreateName.Tag.ToString())
+            If Pack = "" OrElse Not File.Exists(Pack) Then
+                Hint("请先选择整合包 zip 文件！", HintType.Red) : Return
+            End If
+            Dim Dir As String = PathServers & Name & "\"
+            BtnCreateOk.IsEnabled = False
+            RunInNewThread(Sub()
+                               Try
+                                   LogMsl("正在解压整合包……")
+                                   Directory.CreateDirectory(Dir)
+                                   ExtractZip(Pack, Dir)
+                                   Dim Core As String = DetectCoreInDir(Dir)
+                                   If Core = "" Then Throw New Exception("整合包中未识别到核心（未找到 run.bat / server.jar / bedrock_server.exe 等）")
+                                   RunInUi(Sub() FinishCreate(Name, Core))
+                                   LogMsl("整合包导入完成，核心：" & Core)
+                               Catch ex As Exception
+                                   RunInUi(Sub()
+                                               LogMsl("整合包导入失败：" & ex.Message)
+                                               Hint("整合包导入失败：" & ex.Message, HintType.Red)
+                                               BtnCreateOk.IsEnabled = True
+                                           End Sub)
+                               End Try
+                           End Sub)
+            Return
+        End If
+        Dim Core0 = If(TxtCreateName.Tag Is Nothing, "", TxtCreateName.Tag.ToString())
+        If M.StartsWith("快速") AndAlso (Core0 = "" OrElse Not File.Exists(Core0)) Then
+            '快速模式：未选择核心时自动下载所选类型最新核心
+            Dim T = ComboText(ComboCreateType)
+            Dim Mem = ComboText(ComboCreateMemory), Java = TxtCreateJava.Text.Trim()
+            BtnCreateOk.IsEnabled = False
+            RunInNewThread(Sub()
+                               Try
+                                   Dim Dir As String = PathServers & Name & "\"
+                                   Dim Core As String = DownloadCore(T, "", Dir)
+                                   RunInUi(Sub() FinishCreate(Name, Core, Java, Mem))
+                               Catch ex As Exception
+                                   RunInUi(Sub()
+                                               LogMsl("快速开服失败：" & ex.Message)
+                                               Hint("快速开服失败：" & ex.Message, HintType.Red)
+                                               BtnCreateOk.IsEnabled = True
+                                           End Sub)
+                               End Try
+                           End Sub)
+            Return
+        End If
+        If Core0 = "" OrElse Not File.Exists(Core0) Then
+            Hint("请先下载核心或选择本地 jar 文件！", HintType.Red) : Return
+        End If
+        '自定义模式：本地已有核心，直接建实例
+        Dim D2 As String = PathServers & Name & "\"
+        Try : Directory.CreateDirectory(D2) : Catch ex As Exception
             Hint("创建实例目录失败：" & ex.Message, HintType.Red) : Return
         End Try
+        Dim Dest As String = Core0
+        'jar 核心复制进实例目录保证独立；run.bat/exe 等依赖相对路径的核心保留原位
+        If Core0.ToLower().EndsWith(".jar") AndAlso Path.GetDirectoryName(Core0) <> D2 Then
+            Dest = D2 & Path.GetFileName(Core0)
+            Try
+                File.Copy(Core0, Dest, True)
+            Catch ex As Exception
+                Hint("复制核心失败：" & ex.Message, HintType.Red) : Return
+            End Try
+        End If
+        FinishCreate(Name, Dest, TxtCreateJava.Text.Trim(), ComboText(ComboCreateMemory))
+    End Sub
+
+    '在整合包目录中识别可启动核心：run.bat > bedrock_server.exe > 常见服务端 jar > 任意最大的 jar
+    Private Function DetectCoreInDir(Dir As String) As String
+        For Each N As String In {"run.bat", "bedrock_server.exe", "server.jar", "fabric-server-launch.jar", "forge.jar"}
+            Dim F As String = Dir & N
+            If File.Exists(F) Then Return F
+        Next
+        Dim RootJars = Directory.GetFiles(Dir, "*.jar", SearchOption.TopDirectoryOnly)
+        If RootJars.Length > 0 Then
+            Return RootJars.OrderByDescending(Function(f) New FileInfo(f).Length).First()
+        End If
+        '递归一层找（有些整合包核心在子目录）
+        Dim SubJars = Directory.GetFiles(Dir, "*.jar", SearchOption.AllDirectories)
+        If SubJars.Length > 0 Then
+            Return SubJars.OrderByDescending(Function(f) New FileInfo(f).Length).First()
+        End If
+        Return ""
+    End Function
+
+    '收尾建实例（可从后台线程调用）
+    Private Sub FinishCreate(Name As String, Core As String, Optional Java As String = Nothing, Optional Mem As String = Nothing)
+        If Java Is Nothing Then Java = TxtCreateJava.Text.Trim()
+        If Mem Is Nothing Then Mem = ComboText(ComboCreateMemory)
         Dim Inst As New MslInstance With {
             .Name = Name,
-            .CorePath = Dest,
-            .Java = TxtCreateJava.Text.Trim(),
-            .Memory = ComboText(ComboCreateMemory),
+            .CorePath = Core,
+            .Java = Java,
+            .Memory = Mem,
             .Args = ""
         }
         Instances.Add(Inst)
@@ -357,7 +622,9 @@ Public Class PageMslMain
         TxtCreateName.Text = ""
         TxtCreateName.Tag = Nothing
         LabCreateCore.Text = "未选择（将使用在线下载的核心）"
-        LogMsl("已创建实例：" & Name & "（" & Dest & "）")
+        LabCreateModpack.Text = "未选择（服务端整合包压缩包，将解压并自动识别核心）"
+        BtnCreateOk.IsEnabled = True
+        LogMsl("已创建实例：" & Name & "（" & Core & "）")
         Hint("实例创建成功！可在「配置」页完善开服设置。", HintType.Green)
         BtnTabList.Checked = True
     End Sub
@@ -524,6 +791,16 @@ Public Class PageMslMain
         Return ProcMsl IsNot Nothing AndAlso Not ProcMsl.HasExited
     End Function
 
+    '从 "12 GB" 这类文本解析内存数值（返回 12），非法时返回 0
+    Private Function MemNum(Mem As String) As Integer
+        Dim M As Match = Regex.Match(Mem, "\d+")
+        Return If(M.Success, Integer.Parse(M.Value), 0)
+    End Function
+
+    Private Function InstCoreIsBat() As Boolean
+        Return RunningInst IsNot Nothing AndAlso RunningInst.CorePath.ToLower().EndsWith(".bat")
+    End Function
+
     Private Sub StartInstance(Inst As MslInstance)
         If IsRunning() Then
             Hint("已有实例在运行（" & RunningInst.Name & "），请先停止！", HintType.Blue) : Return
@@ -535,22 +812,62 @@ Public Class PageMslMain
         Try
             Dim Java As String = If(Inst.Java <> "", Inst.Java, TxtSetJava.Text.Trim())
             If Java = "" Then Java = "java"
-            Dim Args As String = ""
-            If Inst.Memory <> "自动" Then Args &= "-Xmx" & Inst.Memory.Replace(" ", "") & " "
-            If Inst.Args <> "" Then Args &= Inst.Args & " "
-            Args &= "-jar """ & Inst.CorePath & """ nogui"
-            Dim Info = New ProcessStartInfo With {
-                .FileName = Java,
-                .Arguments = Args,
-                .WorkingDirectory = Path.GetDirectoryName(Inst.CorePath),
-                .UseShellExecute = False,
-                .CreateNoWindow = True,
-                .RedirectStandardOutput = True,
-                .RedirectStandardError = True,
-                .RedirectStandardInput = True,
-                .StandardOutputEncoding = Encoding.UTF8,
-                .StandardErrorEncoding = Encoding.UTF8
-            }
+            Dim CoreLower = Inst.CorePath.ToLower()
+            Dim Info As ProcessStartInfo
+            If CoreLower.EndsWith(".bat") Then
+                'Forge/NeoForge 安装器生成的 run.bat：内存写入 user_jvm_args.txt
+                Dim WorkDir As String = Path.GetDirectoryName(Inst.CorePath)
+                If Inst.Memory <> "自动" AndAlso File.Exists(WorkDir & "\user_jvm_args.txt") Then
+                    Dim JvmLines As New List(Of String)(File.ReadAllLines(WorkDir & "\user_jvm_args.txt"))
+                    Dim Xmx As String = "-Xmx" & MemNum(Inst.Memory) & "G"
+                    JvmLines = JvmLines.Where(Function(l) Not l.TrimStart().StartsWith("-Xmx")).ToList()
+                    JvmLines.Add(Xmx)
+                    File.WriteAllLines(WorkDir & "\user_jvm_args.txt", JvmLines)
+                End If
+                Info = New ProcessStartInfo With {
+                    .FileName = "cmd.exe",
+                    .Arguments = "/c """ & Inst.CorePath & """",
+                    .WorkingDirectory = WorkDir,
+                    .UseShellExecute = False,
+                    .CreateNoWindow = True,
+                    .RedirectStandardOutput = True,
+                    .RedirectStandardError = True,
+                    .RedirectStandardInput = True,
+                    .StandardOutputEncoding = Encoding.UTF8,
+                    .StandardErrorEncoding = Encoding.UTF8
+                }
+            ElseIf CoreLower.EndsWith(".exe") Then
+                '基岩版服务端（BDS）直接运行 exe
+                Info = New ProcessStartInfo With {
+                    .FileName = Inst.CorePath,
+                    .WorkingDirectory = Path.GetDirectoryName(Inst.CorePath),
+                    .UseShellExecute = False,
+                    .CreateNoWindow = True,
+                    .RedirectStandardOutput = True,
+                    .RedirectStandardError = True,
+                    .RedirectStandardInput = True,
+                    .StandardOutputEncoding = Encoding.UTF8,
+                    .StandardErrorEncoding = Encoding.UTF8
+                }
+            Else
+                '传统 jar 核心
+                Dim Args As String = ""
+                If Inst.Memory <> "自动" Then Args &= "-Xmx" & MemNum(Inst.Memory) & "G "
+                If Inst.Args <> "" Then Args &= Inst.Args & " "
+                Args &= "-jar """ & Inst.CorePath & """ nogui"
+                Info = New ProcessStartInfo With {
+                    .FileName = Java,
+                    .Arguments = Args,
+                    .WorkingDirectory = Path.GetDirectoryName(Inst.CorePath),
+                    .UseShellExecute = False,
+                    .CreateNoWindow = True,
+                    .RedirectStandardOutput = True,
+                    .RedirectStandardError = True,
+                    .RedirectStandardInput = True,
+                    .StandardOutputEncoding = Encoding.UTF8,
+                    .StandardErrorEncoding = Encoding.UTF8
+                }
+            End If
             ProcMsl = New Process With {.StartInfo = Info, .EnableRaisingEvents = True}
             AddHandler ProcMsl.OutputDataReceived, Sub(s, e) If e.Data IsNot Nothing Then ConsMsl(e.Data)
             AddHandler ProcMsl.ErrorDataReceived, Sub(s, e) If e.Data IsNot Nothing Then ConsMsl(e.Data)
@@ -581,7 +898,12 @@ Public Class PageMslMain
         End If
         Try
             If Force Then
-                ProcMsl.Kill()
+                'run.bat 方式启动时需结束整棵进程树（cmd + java）
+                If InstCoreIsBat() Then
+                    Process.Start(New ProcessStartInfo With {.FileName = "taskkill", .Arguments = "/F /T /PID " & ProcMsl.Id, .CreateNoWindow = True, .UseShellExecute = False})
+                Else
+                    ProcMsl.Kill()
+                End If
                 ConsMsl("[服务器进程已被强制结束]")
                 LogMsl("已强制结束服务器进程。")
             Else

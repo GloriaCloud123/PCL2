@@ -94,34 +94,63 @@
                     <StackPanel Margin="15,13">
                         <TextBlock Text="新建服务器" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBlock Text="开服模式" Width="84" VerticalAlignment="Center" />
+                            <local:MyComboBox x:Name="ComboCreateMode" Width="260">
+                                <local:MyComboBoxItem Content="快速模式（适合小白）" IsSelected="True" />
+                                <local:MyComboBoxItem Content="自定义模式（适合老手）" />
+                                <local:MyComboBoxItem Content="导入整合包模式" />
+                            </local:MyComboBox>
+                            <TextBlock x:Name="LabCreateModeHint" Text="自动下载所选类型最新核心，填好名字即可开服。" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="12,0,0,0" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                        <StackPanel x:Name="RowCreateName" Orientation="Horizontal" Margin="0,0,0,10">
                             <TextBlock Text="实例名称" Width="84" VerticalAlignment="Center" />
                             <local:MyTextBox x:Name="TxtCreateName" Width="220" HintText="例如：生存服" Margin="0,0,12,0" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <StackPanel x:Name="RowCreateType" Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="服务器类型" Width="84" VerticalAlignment="Center" />
+                            <local:MyComboBox x:Name="ComboCreateType" Width="260" ToolTip="决定下载哪种服务端核心">
+                                <local:MyComboBoxItem Content="插件服务器" IsSelected="True" />
+                                <local:MyComboBoxItem Content="插件模组混合服务器（NeoForge/Forge）" />
+                                <local:MyComboBoxItem Content="插件模组混合服务器（Fabric）" />
+                                <local:MyComboBoxItem Content="模组服务器（NeoForge/Forge）" />
+                                <local:MyComboBoxItem Content="模组服务器（Fabric）" />
+                                <local:MyComboBoxItem Content="原版服务器" />
+                                <local:MyComboBoxItem Content="基岩版服务器" />
+                                <local:MyComboBoxItem Content="代理服务器" />
+                            </local:MyComboBox>
+                        </StackPanel>
+                        <StackPanel x:Name="RowCreateVersion" Orientation="Horizontal" Margin="0,0,0,8">
                             <TextBlock Text="服务端核心" Width="84" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCreateVersion" Width="180" Margin="0,0,10,0" ToolTip="选择原版版本，点击下载核心" />
+                            <local:MyComboBox x:Name="ComboCreateVersion" Width="180" Margin="0,0,10,0" ToolTip="选择版本，点击下载核心" />
                             <local:MyButton x:Name="BtnCreateRefresh" Text="刷新列表" Padding="13,7" Margin="0,0,10,0" />
                             <local:MyButton x:Name="BtnCreateDownload" Text="下载核心" Padding="13,7" ColorType="Highlight" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <StackPanel x:Name="RowCreateLocal" Orientation="Horizontal" Margin="0,0,0,8">
                             <TextBlock Text="本地核心" Width="84" VerticalAlignment="Center" />
                             <local:MyButton x:Name="BtnCreateLocal" Text="选择本地 jar 文件" Padding="13,7" Margin="0,0,12,0" />
                             <TextBlock x:Name="LabCreateCore" Text="未选择（将使用在线下载的核心）" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <StackPanel x:Name="RowCreateJava" Orientation="Horizontal" Margin="0,0,0,10">
                             <TextBlock Text="Java 路径" Width="84" VerticalAlignment="Center" />
                             <local:MyTextBox x:Name="TxtCreateJava" Width="300" HintText="留空则使用设置页的默认 Java" Margin="0,0,10,0" />
                             <local:MyButton x:Name="BtnCreateJava" Text="浏览" Padding="13,7" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <StackPanel x:Name="RowCreateMemory" Orientation="Horizontal" Margin="0,0,0,10">
                             <TextBlock Text="内存分配" Width="84" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCreateMemory" Width="180">
+                            <local:MyComboBox x:Name="ComboCreateMemory" Width="240">
                                 <local:MyComboBoxItem Content="自动" IsSelected="True" />
                                 <local:MyComboBoxItem Content="2 GB" />
                                 <local:MyComboBoxItem Content="4 GB" />
                                 <local:MyComboBoxItem Content="6 GB" />
                                 <local:MyComboBoxItem Content="8 GB" />
+                                <local:MyComboBoxItem Content="12 GB" />
+                                <local:MyComboBoxItem Content="16 GB" />
                             </local:MyComboBox>
+                        </StackPanel>
+                        <StackPanel x:Name="RowCreateModpack" Orientation="Horizontal" Margin="0,0,0,10" Visibility="Collapsed">
+                            <TextBlock Text="整合包文件" Width="84" VerticalAlignment="Center" />
+                            <local:MyButton x:Name="BtnCreateModpack" Text="选择整合包 zip" Padding="13,7" Margin="0,0,12,0" />
+                            <TextBlock x:Name="LabCreateModpack" Text="未选择（服务端整合包压缩包，将解压并自动识别核心）" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextTrimming="CharacterEllipsis" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
                             <local:MyButton x:Name="BtnCreateOk" Text="创建实例" Padding="20,8" ColorType="Highlight" />
@@ -149,12 +178,14 @@
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                             <TextBlock Text="内存分配" Width="84" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCfgMemory" Width="180">
+                            <local:MyComboBox x:Name="ComboCfgMemory" Width="240">
                                 <local:MyComboBoxItem Content="自动" IsSelected="True" />
                                 <local:MyComboBoxItem Content="2 GB" />
                                 <local:MyComboBoxItem Content="4 GB" />
                                 <local:MyComboBoxItem Content="6 GB" />
                                 <local:MyComboBoxItem Content="8 GB" />
+                                <local:MyComboBoxItem Content="12 GB" />
+                                <local:MyComboBoxItem Content="16 GB" />
                             </local:MyComboBox>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal">
