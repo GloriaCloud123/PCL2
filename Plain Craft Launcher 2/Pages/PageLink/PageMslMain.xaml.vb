@@ -788,7 +788,13 @@ Public Class PageMslMain
     '===============================
 
     Private Function IsRunning() As Boolean
-        Return ProcMsl IsNot Nothing AndAlso Not ProcMsl.HasExited
+        If ProcMsl Is Nothing Then Return False
+        Try
+            Return Not ProcMsl.HasExited
+        Catch
+            '进程从未成功启动（Start 失败）时 HasExited 会抛出"没有与此关联的进程"
+            Return False
+        End Try
     End Function
 
     '从 "12 GB" 这类文本解析内存数值（返回 12），非法时返回 0
@@ -886,6 +892,8 @@ Public Class PageMslMain
             ConsMsl("[GloriaCloud] 实例 " & Inst.Name & " 已启动，可在下方输入指令。")
             Hint("实例已启动！切换到「控制台」查看输出。", HintType.Green)
         Catch ex As Exception
+            ProcMsl = Nothing
+            RunningInst = Nothing
             LogMsl("启动失败：" & ex.Message)
             Hint("启动失败：" & ex.Message, HintType.Red)
         End Try
@@ -1125,7 +1133,12 @@ Public Class PageMslMain
     End Sub
 
     Private Function IsMapRunning() As Boolean
-        Return ProcMap IsNot Nothing AndAlso Not ProcMap.HasExited
+        If ProcMap Is Nothing Then Return False
+        Try
+            Return Not ProcMap.HasExited
+        Catch
+            Return False
+        End Try
     End Function
 
     '===============================
