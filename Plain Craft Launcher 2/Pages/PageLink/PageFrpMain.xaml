@@ -15,11 +15,13 @@
         <TextBlock Grid.Row="0" Text="通过 frpc 将内网服务器映射到公网：支持导入 ini / toml 配置文件，或手动粘贴配置文本，适合已拥有 FRP 节点的玩家。"
                    FontSize="13" Foreground="{StaticResource ColorBrushGray3}" Margin="0,37,0,10" TextWrapping="Wrap" />
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
-            <local:MyRadioButton x:Name="BtnFrpTabServer" Text="服务方" Margin="0,0,10,0" Padding="12,6" />
-            <local:MyRadioButton x:Name="BtnFrpTabLog" Text="日志输出" Margin="0,0,10,0" Padding="12,6" />
-            <local:MyRadioButton x:Name="BtnFrpTabPanel" Text="控制台" Margin="0,0,10,0" Padding="12,6" />
-        </StackPanel>
+        <Border Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource ColorBrushBg1}" CornerRadius="8" Padding="9,5" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <local:MyRadioButton x:Name="BtnFrpTabServer" Text="服务方" ColorType="Highlight" Margin="0,0,10,0" Padding="12,6" />
+                <local:MyRadioButton x:Name="BtnFrpTabLog" Text="日志输出" ColorType="Highlight" Margin="0,0,10,0" Padding="12,6" />
+                <local:MyRadioButton x:Name="BtnFrpTabPanel" Text="控制台" ColorType="Highlight" Padding="12,6" />
+            </StackPanel>
+        </Border>
 
         <!-- 服务方 -->
         <ScrollViewer Grid.Row="2" x:Name="PanFrpServer" VerticalScrollBarVisibility="Auto">

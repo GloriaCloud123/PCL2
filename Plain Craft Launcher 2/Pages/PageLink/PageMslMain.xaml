@@ -15,11 +15,13 @@
         <TextBlock Grid.Row="0" Text="内置 MSL 开服功能：管理服务端核心与运行环境，一键启动服务器，并在控制台中直接发送指令、查看实时输出。"
                    FontSize="13" Foreground="{StaticResource ColorBrushGray3}" Margin="0,37,0,10" TextWrapping="Wrap" />
 
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
-            <local:MyRadioButton x:Name="BtnTabServer" Text="服务方" Margin="0,0,10,0" Padding="12,6" />
-            <local:MyRadioButton x:Name="BtnTabLog" Text="日志输出" Margin="0,0,10,0" Padding="12,6" />
-            <local:MyRadioButton x:Name="BtnTabPanel" Text="控制台" Margin="0,0,10,0" Padding="12,6" />
-        </StackPanel>
+        <Border Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource ColorBrushBg1}" CornerRadius="8" Padding="9,5" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal">
+                <local:MyRadioButton x:Name="BtnTabServer" Text="服务方" ColorType="Highlight" Margin="0,0,10,0" Padding="12,6" />
+                <local:MyRadioButton x:Name="BtnTabLog" Text="日志输出" ColorType="Highlight" Margin="0,0,10,0" Padding="12,6" />
+                <local:MyRadioButton x:Name="BtnTabPanel" Text="控制台" ColorType="Highlight" Padding="12,6" />
+            </StackPanel>
+        </Border>
 
         <!-- 服务方 -->
         <ScrollViewer Grid.Row="2" x:Name="PanServer" VerticalScrollBarVisibility="Auto">
@@ -53,7 +55,7 @@
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                             <TextBlock Text="内存分配" Width="84" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboMslMemory" Width="140">
+                            <local:MyComboBox x:Name="ComboMslMemory" Width="180">
                                 <local:MyComboBoxItem Content="自动" IsSelected="True" />
                                 <local:MyComboBoxItem Content="2 GB" />
                                 <local:MyComboBoxItem Content="4 GB" />
