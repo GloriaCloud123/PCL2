@@ -456,7 +456,8 @@ Public Class PageMslMain
         LogMsl("开始下载安装器（" & FullVer & "）……")
         DownloadFile(InstallerUrl, InstJar)
         LogMsl("正在静默安装服务端（可能需要几分钟，请耐心等待）……")
-        Dim Java As String = If(TxtCreateJava.Text.Trim() <> "", TxtCreateJava.Text.Trim(), If(TxtSetJava.Text.Trim() <> "", TxtSetJava.Text.Trim(), "java"))
+        Dim Java As String = If(TxtCreateJava.Text.Trim() <> "", TxtCreateJava.Text.Trim(), FindJavaAuto())
+        If Java = "" OrElse Not File.Exists(Java) Then Throw New Exception("未找到可用的 Java，请先到「设置」页填写默认 Java")
         Dim P = Process.Start(New ProcessStartInfo With {
             .FileName = Java, .Arguments = "-jar """ & InstJar & """ --installServer", .WorkingDirectory = DestDir,
             .UseShellExecute = False, .CreateNoWindow = True})
@@ -787,6 +788,53 @@ Public Class PageMslMain
     '  启动 / 停止
     '===============================
 
+    '实例未指定 Java 且设置页为空时，自动搜索本机常见目录中的 java.exe，优先版本号更高者
+    Private Function ResolveJava(Inst As MslInstance) As String
+        If Inst.Java <> "" AndAlso File.Exists(Inst.Java) Then Return Inst.Java
+        If TxtSetJava.Text.Trim() <> "" AndAlso File.Exists(TxtSetJava.Text.Trim()) Then Return TxtSetJava.Text.Trim()
+        Return FindJavaAuto()
+    End Function
+
+    Private Function FindJavaAuto() As String
+        Try
+            'PATH 中有 java 也可直接用（定位到真实 exe）
+            Dim PathVar As String = Environment.GetEnvironmentVariable("Path")
+            If PathVar IsNot Nothing Then
+                For Each P As String In PathVar.Split(";"c)
+                    Dim T = P.Trim().Trim(""""c)
+                    If T = "" Then Continue For
+                    If File.Exists(T & "\java.exe") Then Return T & "\java.exe"
+                    If File.Exists(T & "\bin\java.exe") Then Return T & "\bin\java.exe"
+                Next
+            End If
+            Dim Bases As New List(Of String) From {
+                "C:\Program Files\Java", "C:\Program Files\Eclipse Adoptium", "C:\Program Files\Microsoft",
+                "C:\Program Files\Zulu", "C:\Program Files\BellSoft", "C:\Program Files\Amazon Corretto",
+                "C:\Program Files (x86)\Java", Paths.AppDataThenName & "Java"
+            }
+            Dim Dirs As New List(Of String)
+            For Each B As String In Bases
+                If Directory.Exists(B) Then Dirs.AddRange(Directory.GetDirectories(B))
+            Next
+            Dim Best As String = "", BestScore As Integer = -1
+            For Each D As String In Dirs
+                For Each J As String In {D & "\bin\java.exe", D & "\jre\bin\java.exe"}
+                    If Not File.Exists(J) Then Continue For
+                    '从目录名解析版本号（如 jdk-17.0.9、jre-21），取最高
+                    Dim Vm As Match = Regex.Match(Path.GetFileName(D), "(\d+)")
+                    Dim Score As Integer = If(Vm.Success, Integer.Parse(Vm.Value), 0)
+                    If Score > BestScore Then
+                        BestScore = Score
+                        Best = J
+                    End If
+                Next
+            Next
+            Return Best
+        Catch
+            Return ""
+        End Try
+    End Function
+
     Private Function IsRunning() As Boolean
         If ProcMsl Is Nothing Then Return False
         Try
@@ -816,8 +864,13 @@ Public Class PageMslMain
         End If
         SelectedInst = Inst
         Try
-            Dim Java As String = If(Inst.Java <> "", Inst.Java, TxtSetJava.Text.Trim())
-            If Java = "" Then Java = "java"
+            Dim Java As String = ResolveJava(Inst)
+            If Java = "" Then
+                Hint("未找到可用的 Java：请到「设置」页填写默认 Java，或安装 Java（建议 17+）后重试。", HintType.Red)
+                LogMsl("启动失败：未找到可用的 Java。")
+                RefreshMslState()
+                Return
+            End If
             Dim CoreLower = Inst.CorePath.ToLower()
             Dim Info As ProcessStartInfo
             If CoreLower.EndsWith(".bat") Then
