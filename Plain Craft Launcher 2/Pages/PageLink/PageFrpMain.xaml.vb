@@ -2,6 +2,7 @@ Imports System.IO
 Imports System.Net.Http
 Imports System.Text.RegularExpressions
 Imports System.Diagnostics
+Imports System.Windows.Threading
 Imports Microsoft.Win32
 Imports PCL
 
@@ -20,6 +21,11 @@ Public Class PageFrpMain
 
     Private CurrentFrpPanel As FrameworkElement = Nothing
 
+    '日志缓冲：后台高频输出时先写入缓冲区，由定时器批量刷新到 UI，避免每行都跨线程刷新造成卡顿
+    Private ConsBuf As New StringBuilder(), LogBuf As New StringBuilder()
+    Private ConsLock As New Object()
+    Private FlushTimer As DispatcherTimer = Nothing
+
     Private Sub Init() Handles Me.Loaded
         '初始化默认子页（服务方）显示，加载阶段不做动画，避免与页面进入动画冲突
         PanFrpServer.Visibility = Visibility.Visible
@@ -29,8 +35,41 @@ Public Class PageFrpMain
         BtnFrpTabServer.Checked = True '确保默认服务方标签页被正确高亮并显示
         AttachMenu(BtnFrpMore, AddressOf OnFrpMenu)
         RefreshFrpState()
+        '定时器只在首次创建，避免每次进入页面重复创建叠加导致卡顿
+        If FlushTimer Is Nothing Then
+            FlushTimer = New DispatcherTimer() With {.Interval = TimeSpan.FromMilliseconds(120)}
+            AddHandler FlushTimer.Tick, AddressOf FlushFrpLogs
+            FlushTimer.Start()
+        End If
         RunInNewThread(AddressOf CheckFrpcThread)
     End Sub
+
+    '批量刷新：每 120ms 把缓冲的日志一次性写入文本框，并限制长度上限
+    Private Sub FlushFrpLogs(sender As Object, e As EventArgs)
+        Dim Cons As String = Nothing, Log As String = Nothing
+        SyncLock ConsLock
+            If ConsBuf.Length > 0 Then Cons = ConsBuf.ToString() : ConsBuf.Clear()
+            If LogBuf.Length > 0 Then Log = LogBuf.ToString() : LogBuf.Clear()
+        End SyncLock
+        If Cons IsNot Nothing Then
+            TxtFrpConsole.AppendText(Cons)
+            TrimBox(TxtFrpConsole, 80000)
+            If AtBottom(TxtFrpConsole) Then TxtFrpConsole.ScrollToEnd()
+        End If
+        If Log IsNot Nothing Then
+            TxtFrpLog.AppendText(Log)
+            TrimBox(TxtFrpLog, 80000)
+            If AtBottom(TxtFrpLog) Then TxtFrpLog.ScrollToEnd()
+        End If
+    End Sub
+
+    Private Sub TrimBox(Box As TextBox, Max As Integer)
+        If Box.Text.Length > Max Then Box.Text = Box.Text.Substring(Box.Text.Length - Max)
+    End Sub
+
+    Private Function AtBottom(Box As TextBox) As Boolean
+        Return Box.VerticalOffset + Box.ViewportHeight >= Box.ExtentHeight - 4
+    End Function
 
     Private Sub AttachMenu(Btn As MyButton, H As RoutedEventHandler)
         If Btn.ContextMenu IsNot Nothing Then
@@ -257,6 +296,7 @@ Public Class PageFrpMain
         Select Case If(TagVal Is Nothing, "", TagVal.ToString())
             Case "clear"
                 TxtFrpConsole.Clear()
+                SyncLock ConsLock : ConsBuf.Clear() : End SyncLock
             Case "folder"
                 Try
                     Directory.CreateDirectory(PathFrp)
@@ -285,20 +325,19 @@ Public Class PageFrpMain
 
     Private Sub BtnFrpLogClear_Click() Handles BtnFrpLogClear.Click
         TxtFrpLog.Clear()
+        SyncLock ConsLock : LogBuf.Clear() : End SyncLock
     End Sub
 
     Private Sub LogFrp(Line As String)
-        RunInUi(Sub()
-                    TxtFrpLog.AppendText("[" & Date.Now.ToString("HH:mm:ss") & "] " & Line & vbCrLf)
-                    TxtFrpLog.ScrollToEnd()
-                End Sub)
+        SyncLock ConsLock
+            LogBuf.AppendLine("[" & Date.Now.ToString("HH:mm:ss") & "] " & Line)
+        End SyncLock
     End Sub
 
     Private Sub ConsFrp(Line As String)
-        RunInUi(Sub()
-                    TxtFrpConsole.AppendText(Line & vbCrLf)
-                    TxtFrpConsole.ScrollToEnd()
-                End Sub)
+        SyncLock ConsLock
+            ConsBuf.AppendLine(Line)
+        End SyncLock
     End Sub
 
     ''' <summary>

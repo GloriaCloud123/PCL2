@@ -2,6 +2,7 @@ Imports System.IO
 Imports System.Net.Http
 Imports System.Text.RegularExpressions
 Imports System.Diagnostics
+Imports System.Windows.Threading
 Imports Microsoft.Win32
 Imports Newtonsoft.Json.Linq
 Imports PCL
@@ -21,6 +22,11 @@ Public Class PageMslMain
 
     Private CurrentMslPanel As FrameworkElement = Nothing
 
+    '日志缓冲：后台高频输出时先写入缓冲区，由定时器批量刷新到 UI，避免每行都跨线程刷新造成卡顿
+    Private ConsBuf As New StringBuilder(), LogBuf As New StringBuilder()
+    Private ConsLock As New Object()
+    Private FlushTimer As DispatcherTimer = Nothing
+
     Private Sub Init() Handles Me.Loaded
         '初始化默认子页（服务方）显示，加载阶段不做动画，避免与页面进入动画冲突
         PanServer.Visibility = Visibility.Visible
@@ -30,8 +36,42 @@ Public Class PageMslMain
         BtnTabServer.Checked = True '确保默认服务方标签页被正确高亮并显示
         AttachMenu(BtnMslMore, AddressOf OnMslMenu)
         RefreshMslState()
-        RunInNewThread(AddressOf LoadVersionsThread)
+        '定时器只在首次创建，避免每次进入页面重复创建叠加导致卡顿
+        If FlushTimer Is Nothing Then
+            FlushTimer = New DispatcherTimer() With {.Interval = TimeSpan.FromMilliseconds(120)}
+            AddHandler FlushTimer.Tick, AddressOf FlushMslLogs
+            FlushTimer.Start()
+        End If
+        '仅在尚未加载过版本列表时才联网拉取，避免重复请求
+        If ComboMslVersion.Items.Count = 0 Then RunInNewThread(AddressOf LoadVersionsThread)
     End Sub
+
+    '批量刷新：每 120ms 把缓冲的日志一次性写入文本框，并限制长度上限
+    Private Sub FlushMslLogs(sender As Object, e As EventArgs)
+        Dim Cons As String = Nothing, Log As String = Nothing
+        SyncLock ConsLock
+            If ConsBuf.Length > 0 Then Cons = ConsBuf.ToString() : ConsBuf.Clear()
+            If LogBuf.Length > 0 Then Log = LogBuf.ToString() : LogBuf.Clear()
+        End SyncLock
+        If Cons IsNot Nothing Then
+            TxtMslConsole.AppendText(Cons)
+            TrimBox(TxtMslConsole, 80000)
+            If AtBottom(TxtMslConsole) Then TxtMslConsole.ScrollToEnd()
+        End If
+        If Log IsNot Nothing Then
+            TxtMslLog.AppendText(Log)
+            TrimBox(TxtMslLog, 80000)
+            If AtBottom(TxtMslLog) Then TxtMslLog.ScrollToEnd()
+        End If
+    End Sub
+
+    Private Sub TrimBox(Box As TextBox, Max As Integer)
+        If Box.Text.Length > Max Then Box.Text = Box.Text.Substring(Box.Text.Length - Max)
+    End Sub
+
+    Private Function AtBottom(Box As TextBox) As Boolean
+        Return Box.VerticalOffset + Box.ViewportHeight >= Box.ExtentHeight - 4
+    End Function
 
     Private Sub AttachMenu(Btn As MyButton, H As RoutedEventHandler)
         If Btn.ContextMenu IsNot Nothing Then
@@ -298,6 +338,7 @@ Public Class PageMslMain
         Select Case If(TagVal Is Nothing, "", TagVal.ToString())
             Case "clear"
                 TxtMslConsole.Clear()
+                SyncLock ConsLock : ConsBuf.Clear() : End SyncLock
             Case "restart"
                 If IsRunning() Then
                     Hint("请先关闭服务器，再进行重启。", HintType.Blue) : Return
@@ -336,20 +377,19 @@ Public Class PageMslMain
 
     Private Sub BtnMslLogClear_Click() Handles BtnMslLogClear.Click
         TxtMslLog.Clear()
+        SyncLock ConsLock : LogBuf.Clear() : End SyncLock
     End Sub
 
     Private Sub LogMsl(Line As String)
-        RunInUi(Sub()
-                    TxtMslLog.AppendText("[" & Date.Now.ToString("HH:mm:ss") & "] " & Line & vbCrLf)
-                    TxtMslLog.ScrollToEnd()
-                End Sub)
+        SyncLock ConsLock
+            LogBuf.AppendLine("[" & Date.Now.ToString("HH:mm:ss") & "] " & Line)
+        End SyncLock
     End Sub
 
     Private Sub ConsMsl(Line As String)
-        RunInUi(Sub()
-                    TxtMslConsole.AppendText(Line & vbCrLf)
-                    TxtMslConsole.ScrollToEnd()
-                End Sub)
+        SyncLock ConsLock
+            ConsBuf.AppendLine(Line)
+        End SyncLock
     End Sub
 
     ''' <summary>
