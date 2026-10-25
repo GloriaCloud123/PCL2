@@ -882,7 +882,7 @@ Public Class PageMslMain
             ProcMsl.BeginErrorReadLine()
             RunningInst = Inst
             LogMsl("已启动实例：" & Inst.Name)
-            LogMsl("启动命令：" & Java & " " & Args)
+            LogMsl("启动命令：" & Info.FileName & " " & Info.Arguments)
             ConsMsl("[GloriaCloud] 实例 " & Inst.Name & " 已启动，可在下方输入指令。")
             Hint("实例已启动！切换到「控制台」查看输出。", HintType.Green)
         Catch ex As Exception
