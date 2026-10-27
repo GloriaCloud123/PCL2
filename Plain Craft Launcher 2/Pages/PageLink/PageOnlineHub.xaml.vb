@@ -13,6 +13,13 @@ Public Class PageOnlineHub
 
     Private Sub Init() Handles Me.Loaded
         LoadGlcOptions()
+        '默认展开 MSL 与 FRP 两个板块，让完整的开服界面与内置 frpc 功能一眼可见（GloriaCloud 板块点击标题展开）
+        EnsureMslContent()
+        BodyMsl.Visibility = Visibility.Visible
+        ArrowMsl.RenderTransform = New System.Windows.Media.RotateTransform(180)
+        EnsureFrpContent()
+        BodyFrp.Visibility = Visibility.Visible
+        ArrowFrp.RenderTransform = New System.Windows.Media.RotateTransform(180)
     End Sub
 
     '===============================
@@ -33,10 +40,7 @@ Public Class PageOnlineHub
 
     Private Sub ToggleSection(Body As StackPanel, Arrow As System.Windows.Shapes.Path, Kind As String)
         Dim Opening = Body.Visibility <> Visibility.Visible
-        '手风琴：先收起全部
-        CollapseSection(BodyMsl, ArrowMsl)
-        CollapseSection(BodyFrp, ArrowFrp)
-        CollapseSection(BodyGlc, ArrowGlc)
+        '各板块独立展开/收起（不再互斥，方便同时查看 MSL 与 FRP）
         If Opening Then
             Select Case Kind
                 Case "Msl" : EnsureMslContent()
@@ -48,6 +52,8 @@ Public Class PageOnlineHub
                 AaOpacity(Body, 1, 180,, New AniEaseOutFluent),
                 AaTranslateY(Body, -10, 180,, New AniEaseOutFluent)
             }, "OnlineHubBody " & Kind)
+        Else
+            Body.Visibility = Visibility.Collapsed
         End If
         '箭头旋转（展开 180°，收起 0°）
         AniStart({AaRotateTransform(Arrow, If(Opening, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow " & Arrow.Name)
@@ -66,25 +72,17 @@ Public Class PageOnlineHub
 
     Private Sub EnsureMslContent()
         If ContentMsl.Content IsNot Nothing Then Return
+        '整页嵌入：直接把 PageMslMain 放入内容区，确保 Loaded 与初始化正常、全部子页与控件完整呈现
         PageMsl = New PageMslMain()
-        Dim C = TryCast(PageMsl.Child, FrameworkElement)
-        If C Is Nothing Then Return
-        PageMsl.Child = Nothing
-        C.MinHeight = 620
-        C.Margin = New Thickness(0)
-        ContentMsl.Content = C
+        ContentMsl.Content = PageMsl
         PageMsl.EnsureInit()
     End Sub
 
     Private Sub EnsureFrpContent()
         If ContentFrp.Content IsNot Nothing Then Return
+        '整页嵌入：直接把 PageFrpMain 放入内容区，frpc 内置功能完整呈现
         PageFrp = New PageFrpMain()
-        Dim C = TryCast(PageFrp.Child, FrameworkElement)
-        If C Is Nothing Then Return
-        PageFrp.Child = Nothing
-        C.MinHeight = 620
-        C.Margin = New Thickness(0)
-        ContentFrp.Content = C
+        ContentFrp.Content = PageFrp
         PageFrp.EnsureInit()
     End Sub
 
