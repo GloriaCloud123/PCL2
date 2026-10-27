@@ -25,7 +25,7 @@ Public Class FormSplash
     Public Sub Close(CloseDuration As TimeSpan)
         If Not IsLoaded Then Return
         Dim anim As New Windows.Media.Animation.DoubleAnimation(Opacity, 0, New Duration(If(CloseDuration = TimeSpan.Zero, TimeSpan.FromMilliseconds(120), CloseDuration)))
-        AddHandler anim.Completed, Sub() Close()
+        AddHandler anim.Completed, Sub() MyBase.Close()
         BeginAnimation(OpacityProperty, anim)
     End Sub
 

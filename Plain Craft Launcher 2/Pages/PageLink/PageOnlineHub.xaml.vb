@@ -31,7 +31,7 @@ Public Class PageOnlineHub
         ToggleSection(BodyGlc, ArrowGlc, "Glc")
     End Sub
 
-    Private Sub ToggleSection(Body As StackPanel, Arrow As Path, Kind As String)
+    Private Sub ToggleSection(Body As StackPanel, Arrow As System.Windows.Shapes.Path, Kind As String)
         Dim Opening = Body.Visibility <> Visibility.Visible
         '手风琴：先收起全部
         CollapseSection(BodyMsl, ArrowMsl)
@@ -53,7 +53,7 @@ Public Class PageOnlineHub
         AniStart({AaRotateTransform(Arrow, If(Opening, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow " & Arrow.Name)
     End Sub
 
-    Private Sub CollapseSection(Body As StackPanel, Arrow As Path)
+    Private Sub CollapseSection(Body As StackPanel, Arrow As System.Windows.Shapes.Path)
         If Body.Visibility = Visibility.Visible Then
             Body.Visibility = Visibility.Collapsed
         End If
@@ -67,9 +67,9 @@ Public Class PageOnlineHub
     Private Sub EnsureMslContent()
         If ContentMsl.Content IsNot Nothing Then Return
         PageMsl = New PageMslMain()
-        Dim C = TryCast(PageMsl.Content, FrameworkElement)
+        Dim C = TryCast(PageMsl.Child, FrameworkElement)
         If C Is Nothing Then Return
-        PageMsl.Content = Nothing
+        PageMsl.Child = Nothing
         C.MinHeight = 620
         C.Margin = New Thickness(0)
         ContentMsl.Content = C
@@ -79,9 +79,9 @@ Public Class PageOnlineHub
     Private Sub EnsureFrpContent()
         If ContentFrp.Content IsNot Nothing Then Return
         PageFrp = New PageFrpMain()
-        Dim C = TryCast(PageFrp.Content, FrameworkElement)
+        Dim C = TryCast(PageFrp.Child, FrameworkElement)
         If C Is Nothing Then Return
-        PageFrp.Content = Nothing
+        PageFrp.Child = Nothing
         C.MinHeight = 620
         C.Margin = New Thickness(0)
         ContentFrp.Content = C
