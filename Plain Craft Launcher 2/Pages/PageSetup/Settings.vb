@@ -309,11 +309,8 @@ Public Class Settings
         If Not Entries.TryGetValue(Key, Entry) Then Throw New KeyNotFoundException("未找到设置项：" & Key)
         Dim Value = Entry.GetCache(Instance)
         If Value IsNot Nothing Then Return Value
-        '对部分设置强制赋值
-        Static ForcedSettings As New Dictionary(Of String, Object) From {
-            {"UiHiddenPageLink", True},
-            {"UiHiddenSetupLink", True}
-        }
+        'GloriaCloud：联机功能已开源解锁，不再强制隐藏联机相关设置
+        Static ForcedSettings As New Dictionary(Of String, Object)
         Dim ForcedSetting As Object = Nothing
         If ForcedSettings.TryGetValue(Key, ForcedSetting) Then
             Entry.Set(ForcedSetting, Instance)
