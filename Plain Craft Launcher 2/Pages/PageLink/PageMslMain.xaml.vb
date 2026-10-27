@@ -47,7 +47,18 @@ Public Class PageMslMain
     Private ConsLock As New Object()
     Private FlushTimer As DispatcherTimer = Nothing
 
+    Private _InitDone As Boolean = False
+
     Private Sub Init() Handles Me.Loaded
+        EnsureInit()
+    End Sub
+
+    ''' <summary>
+    ''' 初始化（可由联机中心在嵌入内容后手动调用）。
+    ''' </summary>
+    Public Sub EnsureInit()
+        If _InitDone Then Return
+        _InitDone = True
         PathServers = PathMsl & "Servers\"
         PathSettings = PathMsl & "settings.json"
         '初始化默认子页（主页）显示，加载阶段不做动画，避免与页面进入动画冲突

@@ -4,16 +4,12 @@
              xmlns:local="clr-namespace:PCL" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" x:Class="PageMslMain"
              d:DesignWidth="820" d:DesignHeight="820">
-    <Grid Margin="25,15,25,18">
+    <Grid Margin="0,0,0,18">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-
-        <TextBlock Grid.Row="0" Text="服务器 MSL 方案（新手推荐）" FontSize="22" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,4" />
-        <TextBlock Grid.Row="0" Text="完整内置 MSL 功能：服务器实例管理、新建服务器、开服配置、运行控制台、端口映射与设置，全部以 PCL 界面风格呈现。"
-                   FontSize="13" Foreground="{StaticResource ColorBrushGray3}" Margin="0,37,0,10" TextWrapping="Wrap" />
 
         <Border Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource ColorBrushBg1}" CornerRadius="8" Padding="9,5" Margin="0,0,0,10">
             <StackPanel Orientation="Horizontal">
@@ -63,7 +59,7 @@
                 <local:MyCard>
                     <StackPanel Margin="15,13">
                         <TextBlock Text="关于" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
-                        <TextBlock Text="本页面对 MSL（github.com/MSLTeam/MSL）的开服、配置与映射功能进行了完整重制，并以 PCL 界面风格内置到 GloriaCloud 启动器中。所有实例数据保存在启动器数据目录 GloriaTools\MSL\Servers 下。"
+                        <TextBlock Text="本模块提供完整的 MSL 开服能力：多服务器实例管理、在线下载多种服务端核心、可视化编辑 server.properties、白名单与 OP 管理、frpc 端口映射与全局设置。所有实例数据保存在启动器数据目录 GloriaTools\MSL\Servers 下。"
                                    FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" LineHeight="17" />
                     </StackPanel>
                 </local:MyCard>

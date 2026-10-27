@@ -363,7 +363,7 @@ EndHint:
 
     '窗体声明
     Public FrmMain As FormMain
-    Public FrmStart As SplashScreen
+    Public FrmStart As FormSplash
 
     '页面声明（出于单元测试考虑，初始化页面已转入 FormMain 中）
     Public FrmLaunchLeft As PageLaunchLeft
@@ -374,6 +374,7 @@ EndHint:
     Public FrmSpeedRight As PageSpeedRight
 
     '联机页面声明
+    Public FrmOnlineHub As PageOnlineHub
     Public FrmLinkMain As PageLinkMain
     '联机功能（新增）页面声明
     Public FrmMslMain As PageMslMain

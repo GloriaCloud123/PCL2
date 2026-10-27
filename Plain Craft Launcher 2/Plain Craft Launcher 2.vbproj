@@ -309,6 +309,9 @@
     <Compile Include="Pages\PageLink\PageMslMain.xaml.vb">
       <DependentUpon>PageMslMain.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Pages\PageLink\PageOnlineHub.xaml.vb">
+      <DependentUpon>PageOnlineHub.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Pages\PageLink\PageFrpMain.xaml.vb">
       <DependentUpon>PageFrpMain.xaml</DependentUpon>
     </Compile>
@@ -500,6 +503,10 @@
       <DependentUpon>FormMain.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="FormSplash.xaml.vb">
+      <DependentUpon>FormSplash.xaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
 
     <Page Include="Pages\PageInstance\MyLocalModItem.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -574,6 +581,14 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Pages\PageLink\PageMslMain.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Pages\PageLink\PageOnlineHub.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="FormSplash.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

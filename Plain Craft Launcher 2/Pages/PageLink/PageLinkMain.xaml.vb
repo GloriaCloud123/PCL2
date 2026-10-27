@@ -117,6 +117,14 @@ Public Class PageLinkMain
         ChangeState(LinkStates.Loading)
     End Sub
 
+    ''' <summary>
+    ''' 由联机中心（PageOnlineHub）触发：以房主身份创建房间（含端口输入）。
+    ''' </summary>
+    Public Sub TriggerCreate()
+        If LinkState <> LinkStates.Waiting Then Return
+        Create_MouseLeftButtonUp()
+    End Sub
+
     '加入
     Private Shared LastCode As String = Nothing
     ''' <summary>
@@ -190,11 +198,13 @@ Public Class PageLinkMain
     Public Shared Sub Join(Code As String)
         If LinkState <> LinkStates.Waiting Then
             Hint("你已经在联机房间中了！", HintType.Red)
-        ElseIf FrmMain.PageCurrent = FormMain.PageType.Link Then
+        ElseIf FrmMain.PageCurrent = FormMain.PageType.Link AndAlso FrmLinkMain IsNot Nothing Then
             FrmLinkMain.JoinInternal(Code)
         Else
-            AutoJoinCode = Code
+            '联机中心页打开后直接加入（不再依赖 PanSelectJoin 的 Loaded 自动加入）
+            If FrmLinkMain Is Nothing Then FrmLinkMain = New PageLinkMain
             FrmMain.PageChange(FormMain.PageType.Link, FormMain.PageSubType.LinkMain)
+            FrmLinkMain.JoinInternal(Code)
         End If
     End Sub
     '在进入页面时自动尝试加入房间
@@ -425,9 +435,11 @@ Public Class PageLinkMain
 
     '1. 获取服务器配置
     Private Sub InitConfig(Task As LoaderTask(Of Integer, Integer))
-        UpdateLoadingPage("正在联网获取配置……", "联网获取配置")
+        UpdateLoadingPage("正在获取联机配置……", "获取联机配置")
         If VersionBranchMain <> "Official" Then
-            Throw New Exception($"$开源版无法联网获取配置。{vbCrLf}你可以在 PCL 官方版的缓存文件夹下查看 ServerConfig 的当前内容， 并在代码中进行相应修改。")
+            'GloriaCloud 开源版：使用内置联机配置（EasyTier 公共发现节点；可在「联机选项」的自定义节点中切换到自有服务器）
+            ServerConfig = LocalLinkConfig()
+            Return
         End If
         ServerLoader.WaitForExit(LoaderToSyncProgress:=Task)
         If ServerConfig Is Nothing Then Throw New Exception("无法从服务器获取配置")
@@ -439,6 +451,25 @@ Public Class PageLinkMain
             Throw New Exception("$你的 PCL 版本太老了，请在更新 PCL 之后再联机！")
         End If
     End Sub
+
+    ''' <summary>
+    ''' GloriaCloud 内置联机配置：使用 EasyTier 官方发布版与公共发现节点。
+    ''' 用户后续可在联机选项中填写自建节点（LinkCustomPeer），双方一致即可走自己的服务器。
+    ''' </summary>
+    Private Function LocalLinkConfig() As JObject
+        Dim Ver As String = "2.4.4"
+        Return New JObject From {
+            {"Link", New JObject From {
+                {"EasyTierVersion", 20240915},
+                {"Downloads", New JArray(
+                    $"https://github.com/EasyTier/EasyTier/releases/download/v{Ver}/easytier-windows-{{arch}}-v{Ver}.zip")},
+                {"Argument", "--no-tun"},
+                {"DiscoverPeerId", 0},
+                {"DiscoverPeer", "tcp://public.easytier.top:11010"},
+                {"PeersBlackList", New JArray()}
+            }}
+        }
+    End Function
 
     '2. 获取需要下载的文件
     Private ServerVersion As Integer

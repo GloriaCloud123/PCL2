@@ -1320,6 +1320,24 @@ Public Class FormMain
     ''' <summary>
     ''' 切换页面，并引起对应选择 UI 的改变。
     ''' </summary>
+    ''' <summary>
+    ''' 联机中心跳转：切换到联机页并触发创建房间 / 加入房间。
+    ''' </summary>
+    Public Shared Sub GoOnline(Kind As String, Optional Code As String = "")
+        RunInUi(Sub()
+                    If FrmMain Is Nothing Then Return
+                    If Kind = "create" Then
+                        If FrmLinkMain Is Nothing Then FrmLinkMain = New PageLinkMain
+                        FrmMain.PageChange(PageType.Link)
+                        FrmLinkMain.TriggerCreate()
+                    ElseIf Kind = "join" AndAlso Code <> "" Then
+                        If FrmLinkMain Is Nothing Then FrmLinkMain = New PageLinkMain
+                        FrmMain.PageChange(PageType.Link)
+                        PageLinkMain.Join(Code)
+                    End If
+                End Sub)
+    End Sub
+
     Public Sub PageChange(Stack As PageStackData, Optional SubType As PageSubType = PageSubType.Default)
         If PageNameGet(Stack) = "" Then
             '切换到主页面
@@ -1366,7 +1384,7 @@ Public Class FormMain
         Return Nothing
     End Function
 
-    Private Sub BtnTitleSelect_Click(sender As MyRadioButton, raiseByMouse As Boolean) Handles BtnTitleSelect0.Check, BtnTitleSelect1.Check, BtnTitleSelect2.Check, BtnTitleSelect3.Check, BtnTitleSelect4.Check, BtnTitleSelect5.Check, BtnTitleSelect6.Check
+    Private Sub BtnTitleSelect_Click(sender As MyRadioButton, raiseByMouse As Boolean) Handles BtnTitleSelect0.Check, BtnTitleSelect1.Check, BtnTitleSelect2.Check, BtnTitleSelect3.Check, BtnTitleSelect4.Check
         If IsChangingPage Then Return
         PageChangeActual(Val(sender.Tag))
     End Sub
@@ -1442,8 +1460,8 @@ Public Class FormMain
                     'PageGet 方法会在未设置 SubType 时指定默认值，并建立相关页面的实例
                     PageChangeAnim(FrmDownloadLeft, FrmDownloadLeft.PageGet(SubType))
                 Case PageType.Link '联机
-                    If FrmLinkMain Is Nothing Then FrmLinkMain = New PageLinkMain
-                    PageChangeAnim(New MyPageLeft, FrmLinkMain)
+                    If FrmOnlineHub Is Nothing Then FrmOnlineHub = New PageOnlineHub
+                    PageChangeAnim(New MyPageLeft, FrmOnlineHub)
                 Case PageType.LinkMsl '联机功能：MSL 方案
                     If FrmMslMain Is Nothing Then FrmMslMain = New PageMslMain
                     PageChangeAnim(New MyPageLeft, FrmMslMain)

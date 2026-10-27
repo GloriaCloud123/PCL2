@@ -1,0 +1,115 @@
+<local:MyPageRight
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PCL" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" x:Class="PageOnlineHub"
+             d:DesignWidth="1000" d:DesignHeight="900">
+    <Grid Margin="25,15,25,18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="联机" FontSize="22" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,4" />
+        <TextBlock Grid.Row="0" Text="全部联机方式集中于此：点击下方板块展开或收起，三种模式任意切换。"
+                   FontSize="13" Foreground="{StaticResource ColorBrushGray3}" Margin="0,37,0,12" TextWrapping="Wrap" />
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- 板块一：MSL服务器联机模式 -->
+                <Border x:Name="HeadMsl" Height="48" Background="{DynamicResource ColorBrushBg1}" CornerRadius="8" Margin="0,0,0,6" Cursor="Hand">
+                    <Grid Margin="16,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="MSL 服务器联机模式" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="0" Text="开服管理 · 服务端核心 · 控制台" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,34,0" />
+                        <Path x:Name="ArrowMsl" Grid.Column="1" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
+                    </Grid>
+                </Border>
+                <StackPanel x:Name="BodyMsl" Visibility="Collapsed" Margin="0,0,0,6">
+                    <ContentControl x:Name="ContentMsl" Focusable="False" />
+                </StackPanel>
+
+                <!-- 板块二：FRP联机模式 -->
+                <Border x:Name="HeadFrp" Height="48" Background="{DynamicResource ColorBrushBg1}" CornerRadius="8" Margin="0,0,0,6" Cursor="Hand">
+                    <Grid Margin="16,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="FRP 联机模式" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="0" Text="内网穿透 · frpc 已内置 · ini/toml 配置" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,34,0" />
+                        <Path x:Name="ArrowFrp" Grid.Column="1" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
+                    </Grid>
+                </Border>
+                <StackPanel x:Name="BodyFrp" Visibility="Collapsed" Margin="0,0,0,6">
+                    <ContentControl x:Name="ContentFrp" Focusable="False" />
+                </StackPanel>
+
+                <!-- 板块三：GloriaCloud服务器 -->
+                <Border x:Name="HeadGlc" Height="48" Background="{DynamicResource ColorBrushBg1}" CornerRadius="8" Margin="0,0,0,6" Cursor="Hand">
+                    <Grid Margin="16,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="GloriaCloud 服务器" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="0" Text="创建房间 · 房间码 · 一键加入" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,34,0" />
+                        <Path x:Name="ArrowGlc" Grid.Column="1" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
+                    </Grid>
+                </Border>
+                <StackPanel x:Name="BodyGlc" Visibility="Collapsed" Margin="0,0,0,6">
+                    <local:MyCard Margin="0,0,0,12">
+                        <StackPanel Margin="15,13">
+                            <TextBlock Text="创建房间" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+                            <TextBlock Text="先在单人游戏中按 Esc，选择「对局域网开放」，然后把游戏给出的端口号填到下一步里。"
+                                       FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" Margin="0,0,0,10" LineHeight="18" />
+                            <local:MyButton x:Name="BtnGlcCreate" Text="创建房间" Padding="16,8" ColorType="Highlight" />
+                        </StackPanel>
+                    </local:MyCard>
+                    <local:MyCard Margin="0,0,0,12">
+                        <StackPanel Margin="15,13">
+                            <TextBlock Text="加入房间" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+                            <TextBlock Text="输入房主发给你的房间码。房间码只用于向联机服务器换取网络配置，不包含网络凭据。"
+                                       FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" Margin="0,0,0,10" LineHeight="18" />
+                            <StackPanel Orientation="Horizontal">
+                                <local:MyTextBox x:Name="TxtGlcCode" Width="220" HintText="房间码，例如 a3f9k" Margin="0,0,12,0" Height="34" />
+                                <local:MyButton x:Name="BtnGlcJoin" Text="输入房间码加入" Padding="16,8" />
+                            </StackPanel>
+                        </StackPanel>
+                    </local:MyCard>
+                    <local:MyCard Margin="0,0,0,12">
+                        <StackPanel Margin="15,13">
+                            <TextBlock Text="联机选项" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="联机加速" Width="90" VerticalAlignment="Center" />
+                                <local:MyComboBox x:Name="ComboGlcAccel" Width="280">
+                                    <local:MyComboBoxItem Content="自动模式（低延迟优先，可走中继）" IsSelected="True" />
+                                    <local:MyComboBoxItem Content="标准模式（稳定优先）" />
+                                </local:MyComboBox>
+                            </StackPanel>
+                            <TextBlock Text="自动模式会让服务器提供的健康中继作为兜底候选；是否真正走中继按实际网络选择，联机成功后会显示实际路径。"
+                                       FontSize="11.5" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="90,0,0,8" LineHeight="16" />
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                <TextBlock Text="服务器地址" Width="90" VerticalAlignment="Center" />
+                                <local:MyTextBox x:Name="TxtGlcPeer" Width="280" HintText="自定义节点（如 tcp://你的服务器:11010），可留空" Margin="0,0,12,0" Height="34" />
+                                <local:MyButton x:Name="BtnGlcSave" Text="保存选项" Padding="14,7" ColorType="Highlight" />
+                            </StackPanel>
+                            <TextBlock Text="GloriaCloud 联机服务器搭建完成后，把官方提供的节点地址填到这里并保存即可切换；注意创建与加入的双方必须填写一致的内容。留空则使用公共发现节点。"
+                                       FontSize="11.5" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="90,0,0,0" LineHeight="16" />
+                        </StackPanel>
+                    </local:MyCard>
+                    <local:MyCard>
+                        <StackPanel Margin="15,13">
+                            <TextBlock Text="房间与成员" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+                            <TextBlock Text="创建或加入房间后，此区域会显示房间码、网络地址、成员与延迟信息；房间管理（复制房间码、退出房间）会出现在房间页中。"
+                                       FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" LineHeight="17" />
+                        </StackPanel>
+                    </local:MyCard>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</local:MyPageRight>

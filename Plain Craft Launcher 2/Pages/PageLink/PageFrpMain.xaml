@@ -4,16 +4,12 @@
              xmlns:local="clr-namespace:PCL" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" x:Class="PageFrpMain"
              d:DesignWidth="820" d:DesignHeight="820">
-    <Grid Margin="25,15,25,18">
+    <Grid Margin="0,0,0,18">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
-
-        <TextBlock Grid.Row="0" Text="纯 FRP 联机方案（入门）" FontSize="22" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,4" />
-        <TextBlock Grid.Row="0" Text="通过 frpc 将内网服务器映射到公网：支持导入 ini / toml 配置文件，或手动粘贴配置文本，适合已拥有 FRP 节点的玩家。"
-                   FontSize="13" Foreground="{StaticResource ColorBrushGray3}" Margin="0,37,0,10" TextWrapping="Wrap" />
 
         <Border Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource ColorBrushBg1}" CornerRadius="8" Padding="9,5" Margin="0,0,0,10">
             <StackPanel Orientation="Horizontal">
