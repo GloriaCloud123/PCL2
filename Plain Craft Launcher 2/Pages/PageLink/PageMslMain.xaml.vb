@@ -156,13 +156,6 @@ Public Class PageMslMain
     Private Sub BtnHomeMap_Click() Handles BtnHomeMap.Click
         BtnTabMap.Checked = True
     End Sub
-    Private Sub BtnListNew_Click() Handles BtnListNew.Click
-        BtnTabCreate.Checked = True
-    End Sub
-    Private Sub BtnListRefresh_Click() Handles BtnListRefresh.Click
-        LoadInstances()
-        Hint("实例列表已刷新。", HintType.Blue)
-    End Sub
 
     '===============================
     '  实例持久化（servers.json）
