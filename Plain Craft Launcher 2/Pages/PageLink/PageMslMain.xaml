@@ -17,17 +17,17 @@
                 <StackPanel Margin="10,16,10,14">
                     <TextBlock Text="Minecraft Server Launcher" FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}"
                                TextWrapping="Wrap" Margin="10,0,4,14" LineHeight="17" />
-                    <local:MyRadioButton x:Name="BtnTabHome" Text="主页" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                    <local:MyRadioButton x:Name="BtnTabHome" Text="主页" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0"
                                          LogoScale="0.85" Logo="M12,3 L21,11 H18.5 V20 H13.5 V14.5 H10.5 V20 H5.5 V11 H3 Z" />
-                    <local:MyRadioButton x:Name="BtnTabList" Text="服务器" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                    <local:MyRadioButton x:Name="BtnTabList" Text="服务器" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0"
                                          LogoScale="0.85" Logo="M4,4 H20 V10 H4 Z M4,12 H20 V18 H4 Z" />
-                    <local:MyRadioButton x:Name="BtnTabMap" Text="映射" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                    <local:MyRadioButton x:Name="BtnTabMap" Text="映射" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0"
                                          LogoScale="0.85" Logo="M7,4 L2,9 L7,14 V10.5 H15 V7.5 H7 Z M17,10 L22,15 L17,20 V16.5 H9 V13.5 H17 Z" />
-                    <local:MyRadioButton x:Name="BtnTabOnline" Text="联机" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                    <local:MyRadioButton x:Name="BtnTabOnline" Text="联机" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0"
                                          LogoScale="0.85" Logo="M9,5 A4,4 0 1 0 9.01,5 Z M15,15 A4,4 0 1 0 15.01,15 Z M9,11 H15 V13 H9 Z" />
-                    <local:MyRadioButton x:Name="BtnTabSet" Text="设置" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                    <local:MyRadioButton x:Name="BtnTabSet" Text="设置" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0"
                                          LogoScale="0.85" Logo="M12,2 L20.7,7 V17 L12,22 L3.3,17 V7 Z M12,8 A4,4 0 1 0 12.01,8 Z" />
-                    <local:MyRadioButton x:Name="BtnTabAbout" Text="关于" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                    <local:MyRadioButton x:Name="BtnTabAbout" Text="关于" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0"
                                          LogoScale="0.85" Logo="M12,2 A10,10 0 1 0 12.01,2 Z M10.7,6.5 H13.3 V9.1 H10.7 Z M10.7,11 H13.3 V18 H10.7 Z" />
                     <!-- 隐藏导航（由界面按钮触发：新建 / 实例详情 / 日志 / 控制台） -->
                     <local:MyRadioButton x:Name="BtnTabCreate" Text="新建" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" Visibility="Collapsed" />
@@ -437,14 +437,14 @@
                         </Border>
                         <!-- 服务器状态 -->
                         <StackPanel Orientation="Horizontal" Margin="2,0,2,12">
-                            <TextBlock Text="服务器状态：" FontSize="13.5" VerticalAlignment="Center" />
-                            <TextBlock x:Name="LabOnlineState" Text="可用" FontSize="13.5" FontWeight="Bold" Foreground="#2FA35C" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <TextBlock Text="服务器状态：" VerticalAlignment="Center" />
+                            <TextBlock x:Name="LabOnlineState" Text="可用" FontWeight="Bold" Foreground="#2FA35C" VerticalAlignment="Center" Margin="0,0,12,0" />
                             <local:MyButton x:Name="BtnOnlineRefresh" Text="刷新" Padding="12,5" />
                         </StackPanel>
                         <!-- 创建房间 -->
                         <Border x:Name="HeadOnlineCreate" Background="{StaticResource ColorBrushBg1}" CornerRadius="8" Padding="14,0" Height="44" Margin="2,0,2,4" Cursor="Hand">
                             <Grid>
-                                <TextBlock Text="创建房间——房主" FontSize="13.5" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                                <TextBlock Text="创建房间——房主" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
                                 <Path x:Name="ArrowOnlineCreate" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
                             </Grid>
                         </Border>
@@ -464,7 +464,7 @@
                         <!-- 进入房间 -->
                         <Border x:Name="HeadOnlineJoin" Background="{StaticResource ColorBrushBg1}" CornerRadius="8" Padding="14,0" Height="44" Margin="2,0,2,4" Cursor="Hand">
                             <Grid>
-                                <TextBlock Text="进入房间——成员" FontSize="13.5" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                                <TextBlock Text="进入房间——成员" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
                                 <Path x:Name="ArrowOnlineJoin" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
                             </Grid>
                         </Border>
