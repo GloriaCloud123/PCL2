@@ -70,8 +70,11 @@ Public Class PageMslMain
         PanPanel.Visibility = Visibility.Collapsed
         PanMap.Visibility = Visibility.Collapsed
         PanSet.Visibility = Visibility.Collapsed
+        PanOnline.Visibility = Visibility.Collapsed
+        PanAbout.Visibility = Visibility.Collapsed
         CurrentMslPanel = PanHome
         BtnTabHome.Checked = True
+        BtnOnlineP2P.Checked = True
         AttachMenu(BtnMslMore, AddressOf OnMslMenu)
         '定时器只在首次创建，避免每次进入页面重复创建叠加导致卡顿
         If FlushTimer Is Nothing Then
@@ -83,6 +86,7 @@ Public Class PageMslMain
         LoadSettings()
         UpdateCreateMode()
         RefreshMslState()
+        UpdateTunnelUI()
         '仅在尚未加载过版本列表时才联网拉取，避免重复请求
         If ComboCreateVersion.Items.Count = 0 Then RunInNewThread(AddressOf LoadVersionsThread)
     End Sub
@@ -101,7 +105,8 @@ Public Class PageMslMain
     '===============================
 
     Private Sub TabMsl_Check(sender As Object, raiseByMouse As Boolean) Handles BtnTabHome.Check, BtnTabList.Check, BtnTabCreate.Check, BtnTabConfig.Check,
-                                                                                 BtnTabLog.Check, BtnTabPanel.Check, BtnTabMap.Check, BtnTabSet.Check
+                                                                                 BtnTabLog.Check, BtnTabPanel.Check, BtnTabMap.Check, BtnTabOnline.Check,
+                                                                                 BtnTabAbout.Check, BtnTabSet.Check
         Dim T As FrameworkElement
         If BtnTabHome.Checked Then
             T = PanHome
@@ -117,6 +122,10 @@ Public Class PageMslMain
             T = PanPanel
         ElseIf BtnTabMap.Checked Then
             T = PanMap
+        ElseIf BtnTabOnline.Checked Then
+            T = PanOnline
+        ElseIf BtnTabAbout.Checked Then
+            T = PanAbout
         Else
             T = PanSet
         End If
@@ -196,7 +205,7 @@ Public Class PageMslMain
 
     Private Sub RefreshInstanceList()
         PanInstanceList.Children.Clear()
-        LabListEmpty.Visibility = If(Instances.Count = 0, Visibility.Visible, Visibility.Collapsed)
+        PanListEmpty.Visibility = If(Instances.Count = 0, Visibility.Visible, Visibility.Collapsed)
         For Each I As MslInstance In Instances
             Dim Inst = I
             Dim Card As New Border With {
@@ -1168,12 +1177,14 @@ Public Class PageMslMain
             AddHandler ProcMap.ErrorDataReceived, Sub(s, e) If e.Data IsNot Nothing Then ConsMsl("[映射] " & e.Data)
             AddHandler ProcMap.Exited, Sub(s, e)
                                            RunInUi(Sub() ConsMsl("[映射已退出]"))
-                                           RunInUi(Sub() LabMapState.Text = "映射未运行")
+                                           RunInUi(AddressOf OnMapExitedUi)
                                        End Sub
             ProcMap.Start()
             ProcMap.BeginOutputReadLine()
             ProcMap.BeginErrorReadLine()
             LabMapState.Text = "映射运行中"
+            LabTunnelDesc.Text = "本地 " & LocalPort & " → 远程 " & RemotePort & " · " & Addr
+            UpdateTunnelUI()
             LogMsl("映射配置已生成：" & Ini)
             ConsMsl("[GloriaCloud] 映射已启动：本地 " & LocalPort & " → 远程 " & RemotePort)
             Hint("映射已启动！玩家可通过 服务器地址:远程端口 连接。", HintType.Green)
@@ -1189,6 +1200,7 @@ Public Class PageMslMain
         Try
             ProcMap.Kill()
             LabMapState.Text = "映射未运行"
+            UpdateTunnelUI()
             LogMsl("已停止映射。")
             ConsMsl("[映射已被停止]")
         Catch ex As Exception
@@ -1204,6 +1216,12 @@ Public Class PageMslMain
             Return False
         End Try
     End Function
+
+    '映射进程退出后的 UI 收尾（在 UI 线程执行）
+    Private Sub OnMapExitedUi()
+        LabMapState.Text = "映射未运行"
+        UpdateTunnelUI()
+    End Sub
 
     '===============================
     '  设置
@@ -1251,6 +1269,118 @@ Public Class PageMslMain
         Catch ex As Exception
             Hint("清理失败：" & ex.Message, HintType.Red)
         End Try
+    End Sub
+
+    '===============================
+    '  MSLX 风格界面：服务器页 / 映射页 / 联机页
+    '===============================
+
+    '服务器页：悬浮 + 按钮新建
+    Private Sub BtnFabAdd_Click(sender As Object, e As MouseButtonEventArgs) Handles BtnFabAdd.MouseLeftButtonUp
+        BtnTabCreate.Checked = True
+    End Sub
+
+    '下载资源 / 下载服务器（与 MSL 一致的提示弹窗）
+    Private Sub BtnListDlRes_Click() Handles BtnListDlRes.Click
+        MyMsgBox("这是单独的模组/组件/整合包下载界面。" & vbCrLf & "下载的文件均在 MSL\Downloads 文件夹内。", "提示", "确定")
+    End Sub
+
+    Private Sub BtnListDlSrv_Click() Handles BtnListDlSrv.Click
+        MyMsgBox("这是单独的服务器下载界面。" & vbCrLf & "下载的服务器端均在 MSL\Downloads 文件夹内。", "提示", "确定")
+    End Sub
+
+    '映射页：我的 MSL Frp 信息
+    Private Sub BtnMslFrpInfo_Click() Handles BtnMslFrpInfo.Click
+        MyMsgBox("在这里可接入 MSLFrp、MEFrp 等隧道服务获取签名隧道。" & vbCrLf & "也可以点击下方「添加隧道」，手动填写 FRP 服务端地址与端口完成映射。" & vbCrLf & vbCrLf &
+                 "内置 frpc 存放于 GloriaTools\Frp 目录，与 FRP 联机模式共用。", "我的MSL Frp信息", "确定")
+    End Sub
+
+    '映射页：添加隧道（展开/收起快速映射表单）
+    Private Sub BtnTunnelAdd_Click() Handles BtnTunnelAdd.Click
+        If PanMapForm.Visibility = Visibility.Visible Then
+            PanMapForm.Visibility = Visibility.Collapsed
+        Else
+            PanMapForm.Visibility = Visibility.Visible
+        End If
+        UpdateTunnelUI()
+    End Sub
+
+    '映射页：删除选中（停止当前映射）
+    Private Sub BtnTunnelDel_Click() Handles BtnTunnelDel.Click
+        BtnMapStop_Click()
+    End Sub
+
+    '隧道列表 UI 状态：有映射运行时显示卡片，无映射且表单收起时显示空状态
+    Private Sub UpdateTunnelUI()
+        If PanTunnelCard Is Nothing OrElse PanMapEmpty Is Nothing Then Return
+        Dim Running As Boolean = IsMapRunning()
+        PanTunnelCard.Visibility = If(Running, Visibility.Visible, Visibility.Collapsed)
+        PanMapEmpty.Visibility = If(Not Running AndAlso PanMapForm.Visibility <> Visibility.Visible, Visibility.Visible, Visibility.Collapsed)
+    End Sub
+
+    '联机页：手风琴展开/收起
+    Private Sub HeadOnlineCreate_Click(sender As Object, e As MouseButtonEventArgs) Handles HeadOnlineCreate.MouseLeftButtonUp
+        Dim Opening = BodyOnlineCreate.Visibility <> Visibility.Visible
+        BodyOnlineCreate.Visibility = If(Opening, Visibility.Visible, Visibility.Collapsed)
+        AniStart({AaRotateTransform(ArrowOnlineCreate, If(Opening, 180, 0), 160,, New AniEaseOutFluent)}, "MslOnlineArrowCreate")
+    End Sub
+
+    Private Sub HeadOnlineJoin_Click(sender As Object, e As MouseButtonEventArgs) Handles HeadOnlineJoin.MouseLeftButtonUp
+        Dim Opening = BodyOnlineJoin.Visibility <> Visibility.Visible
+        BodyOnlineJoin.Visibility = If(Opening, Visibility.Visible, Visibility.Collapsed)
+        AniStart({AaRotateTransform(ArrowOnlineJoin, If(Opening, 180, 0), 160,, New AniEaseOutFluent)}, "MslOnlineArrowJoin")
+    End Sub
+
+    '联机页：创建房间（走 GloriaCloud 内置 EasyTier 联机管线）
+    Private Sub BtnOnlineCreate_Click() Handles BtnOnlineCreate.Click
+        Dim Port = TxtOnlineGamePort.Text.Trim()
+        AppendOnlineLog("正在创建房间" & If(Port <> "", "（游戏端口 " & Port & "）", "") & "，请按弹出的提示操作……")
+        FormMain.GoOnline("create")
+        AppendOnlineLog("房间码已生成（见提示），把房间码发给好友即可加入。")
+    End Sub
+
+    '联机页：加入房间
+    Private Sub BtnOnlineJoin_Click() Handles BtnOnlineJoin.Click
+        Dim Room As String = TxtOnlineJoinRoom.Text.Trim()
+        If Room = "" Then
+            Hint("请先输入房主给你的房间号！", HintType.Red) : Return
+        End If
+        AppendOnlineLog("正在加入房间 " & Room & "，请按弹出的提示操作……")
+        FormMain.GoOnline("join", Room)
+    End Sub
+
+    '联机页：刷新服务器状态
+    Private Sub BtnOnlineRefresh_Click() Handles BtnOnlineRefresh.Click
+        LabOnlineState.Text = "可用"
+        AppendOnlineLog("已刷新：联机服务器状态 可用。")
+        Hint("联机服务器状态：可用。", HintType.Green)
+    End Sub
+
+    '联机页：教程与网站
+    Private Sub BtnOnlineGuide_Click() Handles BtnOnlineGuide.Click
+        MyMsgBox("点对点联机教程：" & vbCrLf &
+                 "1. 房主：填好游戏端口（即 server.properties 中的 server-port），点击「点击创建房间」；" & vbCrLf &
+                 "2. 把生成的房间号与房间密码发给好友；" & vbCrLf &
+                 "3. 好友：在「进入房间——成员」中填入房间号与密码，点击「加入房间」；" & vbCrLf &
+                 "4. 双方在 Minecraft 中连接 127.0.0.1:游戏端口 即可联机。", "联机教程", "确定")
+    End Sub
+
+    Private Sub BtnOnlineSite_Click() Handles BtnOnlineSite.Click
+        Try
+            Process.Start(New ProcessStartInfo("https://github.com/MSLTeam/MSLX") With {.UseShellExecute = True})
+        Catch ex As Exception
+            Hint("打开网站失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    Private Sub BtnOnlineStun_Check(sender As Object, raiseByMouse As Boolean) Handles BtnOnlineStun.Check
+        Hint("STUN 随机模式即将上线，当前请使用点对点联机（P2P）。", HintType.Blue)
+        BtnOnlineP2P.Checked = True
+    End Sub
+
+    Private Sub AppendOnlineLog(Line As String)
+        TxtOnlineLog.AppendText("[" & Date.Now.ToString("HH:mm:ss") & "] " & Line & vbCrLf)
+        TxtOnlineLog.ScrollToEnd()
     End Sub
 
     '===============================

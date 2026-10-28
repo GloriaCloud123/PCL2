@@ -3,373 +3,538 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:PCL" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" x:Class="PageMslMain"
-             d:DesignWidth="820" d:DesignHeight="820">
-    <Grid Margin="0,0,0,18">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+             d:DesignWidth="860" d:DesignHeight="820">
+    <!-- MSL（Minecraft Server Launcher）桌面版风格：白色圆角容器 + 左侧导航栏 + 内容区 -->
+    <Border Background="White" CornerRadius="12" Margin="0,0,0,12" Padding="0">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="180" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-        <Border Grid.Row="1" HorizontalAlignment="Left" VerticalAlignment="Top" Background="{DynamicResource ColorBrushBg1}" CornerRadius="8" Padding="9,5" Margin="0,0,0,10">
-            <StackPanel Orientation="Horizontal">
-                <local:MyRadioButton x:Name="BtnTabHome" Text="主页" ColorType="Highlight" Margin="0,0,8,0" Padding="10,6" />
-                <local:MyRadioButton x:Name="BtnTabList" Text="服务器" ColorType="Highlight" Margin="0,0,8,0" Padding="10,6" />
-                <local:MyRadioButton x:Name="BtnTabCreate" Text="新建" ColorType="Highlight" Margin="0,0,8,0" Padding="10,6" />
-                <local:MyRadioButton x:Name="BtnTabConfig" Text="配置" ColorType="Highlight" Margin="0,0,8,0" Padding="10,6" />
-                <local:MyRadioButton x:Name="BtnTabLog" Text="日志输出" ColorType="Highlight" Margin="0,0,8,0" Padding="10,6" />
-                <local:MyRadioButton x:Name="BtnTabPanel" Text="控制台" ColorType="Highlight" Margin="0,0,8,0" Padding="10,6" />
-                <local:MyRadioButton x:Name="BtnTabMap" Text="映射" ColorType="Highlight" Margin="0,0,8,0" Padding="10,6" />
-                <local:MyRadioButton x:Name="BtnTabSet" Text="设置" ColorType="Highlight" Padding="10,6" />
-            </StackPanel>
-        </Border>
-
-        <!-- 主页 -->
-        <ScrollViewer Grid.Row="2" x:Name="PanHome" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <local:MyCard Margin="0,0,0,12">
-                    <StackPanel Margin="15,13">
-                        <TextBlock Text="快速开始" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                            <local:MyButton x:Name="BtnHomeList" Text="我的服务器" Padding="16,8" ColorType="Highlight" Margin="0,0,12,0" />
-                            <local:MyButton x:Name="BtnHomeCreate" Text="新建服务器" Padding="16,8" Margin="0,0,12,0" />
-                            <local:MyButton x:Name="BtnHomeMap" Text="端口映射" Padding="16,8" />
-                        </StackPanel>
-                        <TextBlock Text="MSL（Minecraft Server Launcher）的开服能力已完整内置：支持多服务器实例管理、在线下载原版服务端、可视化编辑 server.properties、白名单与 OP 管理、安全关服，以及 frpc 端口映射一键配置。"
-                                   FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="17" />
-                    </StackPanel>
-                </local:MyCard>
-                <local:MyCard Margin="0,0,0,12">
-                    <StackPanel Margin="15,13">
-                        <TextBlock Text="运行概览" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="实例数量" Width="90" VerticalAlignment="Center" FontSize="13" />
-                            <TextBlock x:Name="LabHomeCount" Text="0" VerticalAlignment="Center" FontSize="13" FontWeight="Bold" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <TextBlock Text="运行状态" Width="90" VerticalAlignment="Center" FontSize="13" />
-                            <TextBlock x:Name="LabHomeState" Text="未运行" VerticalAlignment="Center" FontSize="13" FontWeight="Bold" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="运行实例" Width="90" VerticalAlignment="Center" FontSize="13" />
-                            <TextBlock x:Name="LabHomeRunning" Text="—" VerticalAlignment="Center" FontSize="13" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                    </StackPanel>
-                </local:MyCard>
-                <local:MyCard>
-                    <StackPanel Margin="15,13">
-                        <TextBlock Text="关于" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
-                        <TextBlock Text="本模块提供完整的 MSL 开服能力：多服务器实例管理、在线下载多种服务端核心、可视化编辑 server.properties、白名单与 OP 管理、frpc 端口映射与全局设置。所有实例数据保存在启动器数据目录 GloriaTools\MSL\Servers 下。"
-                                   FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" LineHeight="17" />
-                    </StackPanel>
-                </local:MyCard>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- 服务器列表 -->
-        <ScrollViewer Grid.Row="2" x:Name="PanList" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <local:MyCard Margin="0,0,0,12">
-                    <StackPanel Margin="15,13">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="服务器实例" FontSize="15" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
-                            <local:MyButton x:Name="BtnListNew" Text="新建服务器" Padding="13,6" ColorType="Highlight" Margin="12,0,0,0" />
-                            <local:MyButton x:Name="BtnListRefresh" Text="刷新" Padding="13,6" Margin="10,0,0,0" />
-                        </StackPanel>
-                        <StackPanel x:Name="PanInstanceList" />
-                        <TextBlock x:Name="LabListEmpty" Text="还没有服务器实例，点击右上角「新建服务器」创建一个吧。" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="2,4,0,0" />
-                    </StackPanel>
-                </local:MyCard>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- 新建服务器 -->
-        <ScrollViewer Grid.Row="2" x:Name="PanCreate" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <local:MyCard Margin="0,0,0,12">
-                    <StackPanel Margin="15,13">
-                        <TextBlock Text="新建服务器" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="开服模式" Width="84" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCreateMode" Width="260">
-                                <local:MyComboBoxItem Content="快速模式（适合小白）" IsSelected="True" />
-                                <local:MyComboBoxItem Content="自定义模式（适合老手）" />
-                                <local:MyComboBoxItem Content="导入整合包模式" />
-                            </local:MyComboBox>
-                            <TextBlock x:Name="LabCreateModeHint" Text="自动下载所选类型最新核心，填好名字即可开服。" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="12,0,0,0" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                        <StackPanel x:Name="RowCreateName" Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="实例名称" Width="84" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtCreateName" Width="220" HintText="例如：生存服" Margin="0,0,12,0" />
-                        </StackPanel>
-                        <StackPanel x:Name="RowCreateType" Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="服务器类型" Width="84" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCreateType" Width="260" ToolTip="决定下载哪种服务端核心">
-                                <local:MyComboBoxItem Content="插件服务器" IsSelected="True" />
-                                <local:MyComboBoxItem Content="插件模组混合服务器（NeoForge/Forge）" />
-                                <local:MyComboBoxItem Content="插件模组混合服务器（Fabric）" />
-                                <local:MyComboBoxItem Content="模组服务器（NeoForge/Forge）" />
-                                <local:MyComboBoxItem Content="模组服务器（Fabric）" />
-                                <local:MyComboBoxItem Content="原版服务器" />
-                                <local:MyComboBoxItem Content="基岩版服务器" />
-                                <local:MyComboBoxItem Content="代理服务器" />
-                            </local:MyComboBox>
-                        </StackPanel>
-                        <StackPanel x:Name="RowCreateVersion" Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="服务端核心" Width="84" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCreateVersion" Width="180" Margin="0,0,10,0" ToolTip="选择版本，点击下载核心" />
-                            <local:MyButton x:Name="BtnCreateRefresh" Text="刷新列表" Padding="13,7" Margin="0,0,10,0" />
-                            <local:MyButton x:Name="BtnCreateDownload" Text="下载核心" Padding="13,7" ColorType="Highlight" />
-                        </StackPanel>
-                        <StackPanel x:Name="RowCreateLocal" Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="本地核心" Width="84" VerticalAlignment="Center" />
-                            <local:MyButton x:Name="BtnCreateLocal" Text="选择本地 jar 文件" Padding="13,7" Margin="0,0,12,0" />
-                            <TextBlock x:Name="LabCreateCore" Text="未选择（将使用在线下载的核心）" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                        <StackPanel x:Name="RowCreateJava" Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="Java 路径" Width="84" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtCreateJava" Width="300" HintText="留空则使用设置页的默认 Java" Margin="0,0,10,0" />
-                            <local:MyButton x:Name="BtnCreateJava" Text="浏览" Padding="13,7" />
-                        </StackPanel>
-                        <StackPanel x:Name="RowCreateMemory" Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="内存分配" Width="84" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCreateMemory" Width="240">
-                                <local:MyComboBoxItem Content="自动" IsSelected="True" />
-                                <local:MyComboBoxItem Content="2 GB" />
-                                <local:MyComboBoxItem Content="4 GB" />
-                                <local:MyComboBoxItem Content="6 GB" />
-                                <local:MyComboBoxItem Content="8 GB" />
-                                <local:MyComboBoxItem Content="12 GB" />
-                                <local:MyComboBoxItem Content="16 GB" />
-                            </local:MyComboBox>
-                        </StackPanel>
-                        <StackPanel x:Name="RowCreateModpack" Orientation="Horizontal" Margin="0,0,0,10" Visibility="Collapsed">
-                            <TextBlock Text="整合包文件" Width="84" VerticalAlignment="Center" />
-                            <local:MyButton x:Name="BtnCreateModpack" Text="选择整合包 zip" Padding="13,7" Margin="0,0,12,0" />
-                            <TextBlock x:Name="LabCreateModpack" Text="未选择（服务端整合包压缩包，将解压并自动识别核心）" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <local:MyButton x:Name="BtnCreateOk" Text="创建实例" Padding="20,8" ColorType="Highlight" />
-                            <TextBlock Text="创建后可在「配置」页编辑 server.properties、白名单与 OP，在「服务器」页启动。"
-                                       FontSize="12" Foreground="{StaticResource ColorBrushGray4}" VerticalAlignment="Center" Margin="14,0,0,0" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </StackPanel>
-                </local:MyCard>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- 服务器配置 -->
-        <ScrollViewer Grid.Row="2" x:Name="PanConfig" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <local:MyCard Margin="0,0,0,12">
-                    <StackPanel Margin="15,13">
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="运行环境" FontSize="15" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
-                            <TextBlock x:Name="LabCfgTarget" Text="（未选择实例）" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" Margin="10,1,0,0" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="Java 路径" Width="84" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtCfgJava" Width="300" HintText="留空则使用默认 Java" Margin="0,0,10,0" />
-                            <local:MyButton x:Name="BtnCfgJava" Text="浏览" Padding="13,7" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="内存分配" Width="84" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCfgMemory" Width="240">
-                                <local:MyComboBoxItem Content="自动" IsSelected="True" />
-                                <local:MyComboBoxItem Content="2 GB" />
-                                <local:MyComboBoxItem Content="4 GB" />
-                                <local:MyComboBoxItem Content="6 GB" />
-                                <local:MyComboBoxItem Content="8 GB" />
-                                <local:MyComboBoxItem Content="12 GB" />
-                                <local:MyComboBoxItem Content="16 GB" />
-                            </local:MyComboBox>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="JVM 参数" Width="84" VerticalAlignment="Top" Margin="0,6,0,0" />
-                            <local:MyTextBox x:Name="TxtCfgArgs" Width="300" HintText="例如 -Dfile.encoding=UTF-8" />
-                        </StackPanel>
-                    </StackPanel>
-                </local:MyCard>
-                <local:MyCard Margin="0,0,0,12">
-                    <StackPanel Margin="15,13">
-                        <TextBlock Text="server.properties 可视化编辑" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="MOTD" Width="84" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtCfgMotd" Width="300" HintText="服务器简介，支持颜色符号 §" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="端口" Width="84" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtCfgPort" Width="100" HintText="25565" Margin="0,0,24,0" />
-                            <TextBlock Text="最大玩家" Width="84" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtCfgMaxPlayers" Width="100" HintText="20" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="游戏模式" Width="84" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCfgGamemode" Width="120" Margin="0,0,24,0">
-                                <local:MyComboBoxItem Content="survival" IsSelected="True" />
-                                <local:MyComboBoxItem Content="creative" />
-                                <local:MyComboBoxItem Content="adventure" />
-                            </local:MyComboBox>
-                            <TextBlock Text="难度" Width="60" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCfgDifficulty" Width="120">
-                                <local:MyComboBoxItem Content="easy" IsSelected="True" />
-                                <local:MyComboBoxItem Content="peaceful" />
-                                <local:MyComboBoxItem Content="normal" />
-                                <local:MyComboBoxItem Content="hard" />
-                            </local:MyComboBox>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="正版验证" Width="84" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCfgOnline" Width="120" Margin="0,0,24,0">
-                                <local:MyComboBoxItem Content="开启" IsSelected="True" />
-                                <local:MyComboBoxItem Content="关闭" />
-                            </local:MyComboBox>
-                            <TextBlock Text="白名单" Width="60" VerticalAlignment="Center" />
-                            <local:MyComboBox x:Name="ComboCfgWhite" Width="120">
-                                <local:MyComboBoxItem Content="关闭" IsSelected="True" />
-                                <local:MyComboBoxItem Content="开启" />
-                            </local:MyComboBox>
-                        </StackPanel>
-                        <TextBlock Text="完整配置（原始 server.properties，保存时同步上方可视化字段）" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="0,4,0,4" />
-                        <TextBox x:Name="TxtPropsRaw" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12"
-                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Height="150"
-                                 Background="{StaticResource ColorBrushBg1}" BorderThickness="0" Padding="8" />
-                        <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
-                            <local:MyButton x:Name="BtnCfgLoadProps" Text="重新读取" Padding="13,7" Margin="0,0,10,0" />
-                            <local:MyButton x:Name="BtnCfgSaveProps" Text="保存 server.properties" Padding="13,7" ColorType="Highlight" />
-                        </StackPanel>
-                    </StackPanel>
-                </local:MyCard>
-                <local:MyCard>
-                    <StackPanel Margin="15,13">
-                        <TextBlock Text="EULA / 白名单 / OP" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
-                        <local:MyCheckBox x:Name="CheckCfgEula" Text="已同意 Minecraft EULA（eula.txt 写入 eula=true）" Margin="0,0,0,10" />
-                        <TextBlock Text="白名单名单（每行一个玩家名，保存到 whitelist.txt）" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="0,0,0,4" />
-                        <TextBox x:Name="TxtCfgWhitelist" AcceptsReturn="True" FontFamily="Consolas" FontSize="12" Height="70"
-                                 VerticalScrollBarVisibility="Auto" Background="{StaticResource ColorBrushBg1}" BorderThickness="0" Padding="8" Margin="0,0,0,10" />
-                        <TextBlock Text="OP 列表（每行一个玩家名，保存时生成 ops.json）" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="0,0,0,4" />
-                        <TextBox x:Name="TxtCfgOps" AcceptsReturn="True" FontFamily="Consolas" FontSize="12" Height="70"
-                                 VerticalScrollBarVisibility="Auto" Background="{StaticResource ColorBrushBg1}" BorderThickness="0" Padding="8" Margin="0,0,0,10" />
-                        <local:MyButton x:Name="BtnCfgSaveLists" Text="保存 EULA 与名单" Padding="13,7" ColorType="Highlight" />
-                    </StackPanel>
-                </local:MyCard>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- 日志输出 -->
-        <Grid x:Name="PanLog" Grid.Row="2" Visibility="Collapsed">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-            <local:MyButton x:Name="BtnMslLogClear" Grid.Row="0" Text="清空日志" HorizontalAlignment="Right" Margin="0,0,0,8" Padding="13,7" />
-            <TextBox x:Name="TxtMslLog" Grid.Row="1" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
-                     Background="{StaticResource ColorBrushBg1}" Foreground="{StaticResource ColorBrushGray1}" FontFamily="Consolas" FontSize="12" Padding="10" />
-        </Grid>
-
-        <!-- 控制台 -->
-        <Grid x:Name="PanPanel" Grid.Row="2" Visibility="Collapsed">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="*" />
-                <RowDefinition Height="Auto" />
-            </Grid.RowDefinitions>
-
-            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="2,0,0,8">
-                <TextBlock x:Name="LabMslConsState" Text="● 已停止" VerticalAlignment="Center" FontSize="13" Margin="0,0,14,0" />
-                <TextBlock x:Name="LabMslConsCore" Text="" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextTrimming="CharacterEllipsis" />
-            </StackPanel>
-
-            <Border Grid.Row="1" Background="#1E1E1E" CornerRadius="8" Padding="12,10" Margin="0,0,0,10">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <TextBox x:Name="TxtMslConsole" Grid.Row="0" IsReadOnly="True" Background="Transparent" BorderThickness="0"
-                             Foreground="#5FD75F" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap"
-                             VerticalScrollBarVisibility="Auto" SelectionBrush="#3F7F3F" />
-                </Grid>
+            <!-- ================= 左侧导航栏 ================= -->
+            <Border Grid.Column="0" Background="#F5F9FD" CornerRadius="12,0,0,12">
+                <StackPanel Margin="10,16,10,14">
+                    <TextBlock Text="Minecraft Server Launcher" FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}"
+                               TextWrapping="Wrap" Margin="10,0,4,14" LineHeight="17" />
+                    <local:MyRadioButton x:Name="BtnTabHome" Text="主页" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                                         LogoScale="0.85" Logo="M12,3 L21,11 H18.5 V20 H13.5 V14.5 H10.5 V20 H5.5 V11 H3 Z" />
+                    <local:MyRadioButton x:Name="BtnTabList" Text="服务器" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                                         LogoScale="0.85" Logo="M4,4 H20 V10 H4 Z M4,12 H20 V18 H4 Z" />
+                    <local:MyRadioButton x:Name="BtnTabMap" Text="映射" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                                         LogoScale="0.85" Logo="M7,4 L2,9 L7,14 V10.5 H15 V7.5 H7 Z M17,10 L22,15 L17,20 V16.5 H9 V13.5 H17 Z" />
+                    <local:MyRadioButton x:Name="BtnTabOnline" Text="联机" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                                         LogoScale="0.85" Logo="M9,5 A4,4 0 1 0 9.01,5 Z M15,15 A4,4 0 1 0 15.01,15 Z M9,11 H15 V13 H9 Z" />
+                    <local:MyRadioButton x:Name="BtnTabSet" Text="设置" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                                         LogoScale="0.85" Logo="M12,2 L20.7,7 V17 L12,22 L3.3,17 V7 Z M12,8 A4,4 0 1 0 12.01,8 Z" />
+                    <local:MyRadioButton x:Name="BtnTabAbout" Text="关于" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" FontSize="13.5"
+                                         LogoScale="0.85" Logo="M12,2 A10,10 0 1 0 12.01,2 Z M10.7,6.5 H13.3 V9.1 H10.7 Z M10.7,11 H13.3 V18 H10.7 Z" />
+                    <!-- 隐藏导航（由界面按钮触发：新建 / 实例详情 / 日志 / 控制台） -->
+                    <local:MyRadioButton x:Name="BtnTabCreate" Text="新建" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" Visibility="Collapsed" />
+                    <local:MyRadioButton x:Name="BtnTabConfig" Text="实例详情" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" Visibility="Collapsed" />
+                    <local:MyRadioButton x:Name="BtnTabLog" Text="日志输出" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" Visibility="Collapsed" />
+                    <local:MyRadioButton x:Name="BtnTabPanel" Text="控制台" ColorType="Highlight" Height="42" Margin="0,0,0,4" Padding="14,0" Visibility="Collapsed" />
+                </StackPanel>
             </Border>
 
-            <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="1*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <local:MyTextBox x:Name="TxtMslCmd" Grid.Column="0" HintText="/ (指令)，按回车或点击发送" Margin="0,0,10,0" Height="34" />
-                <local:MyButton x:Name="BtnMslSend" Grid.Column="1" Text="发送" Padding="16,7" ColorType="Highlight" Margin="0,0,10,0" />
-                <local:MyButton x:Name="BtnMslMore" Grid.Column="2" Text="更多操作" Padding="16,7" Margin="0,0,10,0">
-                    <local:MyButton.ContextMenu>
-                        <ContextMenu>
-                            <local:MyMenuItem Header="清空控制台" Tag="clear" />
-                            <local:MyMenuItem Header="重启服务器" Tag="restart" />
-                            <local:MyMenuItem Header="打开实例目录" Tag="folder" />
-                            <local:MyMenuItem Header="强制结束进程" Tag="force" />
-                        </ContextMenu>
-                    </local:MyButton.ContextMenu>
-                </local:MyButton>
-                <local:MyButton x:Name="BtnMslKill" Grid.Column="3" Text="关服" Padding="16,7" ColorType="Red" />
+            <!-- ================= 内容区 ================= -->
+            <Grid Grid.Column="1" Margin="20,16,20,14">
+
+                <!-- 主页 -->
+                <ScrollViewer x:Name="PanHome" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Grid Margin="2,0,2,14">
+                            <TextBlock Text="主页" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        </Grid>
+                        <local:MyCard Margin="0,0,0,12">
+                            <StackPanel Margin="15,13">
+                                <TextBlock Text="快速开始" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                    <local:MyButton x:Name="BtnHomeList" Text="我的服务器" Padding="16,8" ColorType="Highlight" Margin="0,0,12,0" />
+                                    <local:MyButton x:Name="BtnHomeCreate" Text="新建服务器" Padding="16,8" Margin="0,0,12,0" />
+                                    <local:MyButton x:Name="BtnHomeMap" Text="端口映射" Padding="16,8" />
+                                </StackPanel>
+                            </StackPanel>
+                        </local:MyCard>
+                        <local:MyCard Margin="0,0,0,12">
+                            <StackPanel Margin="15,13">
+                                <TextBlock Text="运行概览" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="实例数量" Width="90" VerticalAlignment="Center" FontSize="13" />
+                                    <TextBlock x:Name="LabHomeCount" Text="0" VerticalAlignment="Center" FontSize="13" FontWeight="Bold" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="运行状态" Width="90" VerticalAlignment="Center" FontSize="13" />
+                                    <TextBlock x:Name="LabHomeState" Text="未运行" VerticalAlignment="Center" FontSize="13" FontWeight="Bold" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="运行实例" Width="90" VerticalAlignment="Center" FontSize="13" />
+                                    <TextBlock x:Name="LabHomeRunning" Text="—" VerticalAlignment="Center" FontSize="13" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </StackPanel>
+                        </local:MyCard>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 服务器（实例列表） -->
+                <Grid x:Name="PanList" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="2,0,2,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="实例列表" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        <local:MyButton x:Name="BtnListDlRes" Grid.Column="1" Text="↓ 下载资源" Padding="14,7" Margin="0,0,10,0" />
+                        <local:MyButton x:Name="BtnListDlSrv" Grid.Column="2" Text="↓ 下载服务器" Padding="14,7" />
+                    </Grid>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <StackPanel x:Name="PanInstanceList" />
+                            <StackPanel x:Name="PanListEmpty" HorizontalAlignment="Center" Margin="0,90,0,0">
+                                <Path Data="M3,4 H21 V17 H14 L12,20 L10,17 H3 Z M3,4 V17" Stroke="#C9D6E2" StrokeThickness="1.6" Width="72" Height="56" Stretch="Uniform" HorizontalAlignment="Center" Fill="#EDF3F8" />
+                                <TextBlock x:Name="LabListEmpty" Text="暂无数据" FontSize="13" Foreground="{StaticResource ColorBrushGray3}" HorizontalAlignment="Center" Margin="0,10,0,0" />
+                                <TextBlock Text="您还没有一个服务器哦，点击右下角加号创建一个吧~" FontSize="12" Foreground="{StaticResource ColorBrushGray4}" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <!-- 悬浮添加按钮 -->
+                    <Border x:Name="BtnFabAdd" Grid.Row="1" Width="50" Height="50" CornerRadius="25" Background="#2E9BF0"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,8,8" Cursor="Hand" ToolTip="新建服务器">
+                        <TextBlock Text="+" FontSize="28" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-3,0,0" />
+                    </Border>
+                </Grid>
+
+                <!-- 新建服务器 -->
+                <ScrollViewer x:Name="PanCreate" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Grid Margin="2,0,2,14">
+                            <TextBlock Text="新建服务器" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        </Grid>
+                        <local:MyCard Margin="0,0,0,12">
+                            <StackPanel Margin="15,13">
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="开服模式" Width="84" VerticalAlignment="Center" />
+                                    <local:MyComboBox x:Name="ComboCreateMode" Width="260">
+                                        <local:MyComboBoxItem Content="快速模式（适合小白）" IsSelected="True" />
+                                        <local:MyComboBoxItem Content="自定义模式（适合老手）" />
+                                        <local:MyComboBoxItem Content="导入整合包模式" />
+                                    </local:MyComboBox>
+                                    <TextBlock x:Name="LabCreateModeHint" Text="自动下载所选类型最新核心，填好名字即可开服。" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="12,0,0,0" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <StackPanel x:Name="RowCreateName" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="实例名称" Width="84" VerticalAlignment="Center" />
+                                    <local:MyTextBox x:Name="TxtCreateName" Width="220" HintText="例如：生存服" Margin="0,0,12,0" />
+                                </StackPanel>
+                                <StackPanel x:Name="RowCreateType" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="服务器类型" Width="84" VerticalAlignment="Center" />
+                                    <local:MyComboBox x:Name="ComboCreateType" Width="260" ToolTip="决定下载哪种服务端核心">
+                                        <local:MyComboBoxItem Content="插件服务器" IsSelected="True" />
+                                        <local:MyComboBoxItem Content="插件模组混合服务器（NeoForge/Forge）" />
+                                        <local:MyComboBoxItem Content="插件模组混合服务器（Fabric）" />
+                                        <local:MyComboBoxItem Content="模组服务器（NeoForge/Forge）" />
+                                        <local:MyComboBoxItem Content="模组服务器（Fabric）" />
+                                        <local:MyComboBoxItem Content="原版服务器" />
+                                        <local:MyComboBoxItem Content="基岩版服务器" />
+                                        <local:MyComboBoxItem Content="代理服务器" />
+                                    </local:MyComboBox>
+                                </StackPanel>
+                                <StackPanel x:Name="RowCreateVersion" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="服务端核心" Width="84" VerticalAlignment="Center" />
+                                    <local:MyComboBox x:Name="ComboCreateVersion" Width="180" Margin="0,0,10,0" ToolTip="选择版本，点击下载核心" />
+                                    <local:MyButton x:Name="BtnCreateRefresh" Text="刷新列表" Padding="13,7" Margin="0,0,10,0" />
+                                    <local:MyButton x:Name="BtnCreateDownload" Text="下载核心" Padding="13,7" ColorType="Highlight" />
+                                </StackPanel>
+                                <StackPanel x:Name="RowCreateLocal" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="本地核心" Width="84" VerticalAlignment="Center" />
+                                    <local:MyButton x:Name="BtnCreateLocal" Text="选择本地 jar 文件" Padding="13,7" Margin="0,0,12,0" />
+                                    <TextBlock x:Name="LabCreateCore" Text="未选择（将使用在线下载的核心）" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <StackPanel x:Name="RowCreateJava" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Java 路径" Width="84" VerticalAlignment="Center" />
+                                    <local:MyTextBox x:Name="TxtCreateJava" Width="300" HintText="留空则使用设置页的默认 Java" Margin="0,0,10,0" />
+                                    <local:MyButton x:Name="BtnCreateJava" Text="浏览" Padding="13,7" />
+                                </StackPanel>
+                                <StackPanel x:Name="RowCreateMemory" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="内存分配" Width="84" VerticalAlignment="Center" />
+                                    <local:MyComboBox x:Name="ComboCreateMemory" Width="240">
+                                        <local:MyComboBoxItem Content="自动" IsSelected="True" />
+                                        <local:MyComboBoxItem Content="2 GB" />
+                                        <local:MyComboBoxItem Content="4 GB" />
+                                        <local:MyComboBoxItem Content="6 GB" />
+                                        <local:MyComboBoxItem Content="8 GB" />
+                                        <local:MyComboBoxItem Content="12 GB" />
+                                        <local:MyComboBoxItem Content="16 GB" />
+                                    </local:MyComboBox>
+                                </StackPanel>
+                                <StackPanel x:Name="RowCreateModpack" Orientation="Horizontal" Margin="0,0,0,10" Visibility="Collapsed">
+                                    <TextBlock Text="整合包文件" Width="84" VerticalAlignment="Center" />
+                                    <local:MyButton x:Name="BtnCreateModpack" Text="选择整合包 zip" Padding="13,7" Margin="0,0,12,0" />
+                                    <TextBlock x:Name="LabCreateModpack" Text="未选择（服务端整合包压缩包，将解压并自动识别核心）" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <local:MyButton x:Name="BtnCreateOk" Text="创建实例" Padding="20,8" ColorType="Highlight" />
+                                    <TextBlock Text="创建后可在实例详情编辑 server.properties、白名单与 OP，并启动与控制。"
+                                               FontSize="12" Foreground="{StaticResource ColorBrushGray4}" VerticalAlignment="Center" Margin="14,0,0,0" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </StackPanel>
+                        </local:MyCard>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 实例详情：运行环境与配置 -->
+                <ScrollViewer x:Name="PanConfig" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Grid Margin="2,0,2,14">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="实例详情" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="LabCfgTarget" Text="（未选择实例）" FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" Margin="12,2,0,0" />
+                            </StackPanel>
+                        </Grid>
+                        <local:MyCard Margin="0,0,0,12">
+                            <StackPanel Margin="15,13">
+                                <TextBlock Text="运行环境" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Java 路径" Width="84" VerticalAlignment="Center" />
+                                    <local:MyTextBox x:Name="TxtCfgJava" Width="300" HintText="留空则使用默认 Java" Margin="0,0,10,0" />
+                                    <local:MyButton x:Name="BtnCfgJava" Text="浏览" Padding="13,7" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="内存分配" Width="84" VerticalAlignment="Center" />
+                                    <local:MyComboBox x:Name="ComboCfgMemory" Width="240">
+                                        <local:MyComboBoxItem Content="自动" IsSelected="True" />
+                                        <local:MyComboBoxItem Content="2 GB" />
+                                        <local:MyComboBoxItem Content="4 GB" />
+                                        <local:MyComboBoxItem Content="6 GB" />
+                                        <local:MyComboBoxItem Content="8 GB" />
+                                        <local:MyComboBoxItem Content="12 GB" />
+                                        <local:MyComboBoxItem Content="16 GB" />
+                                    </local:MyComboBox>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="JVM 参数" Width="84" VerticalAlignment="Top" Margin="0,6,0,0" />
+                                    <local:MyTextBox x:Name="TxtCfgArgs" Width="300" HintText="例如 -Dfile.encoding=UTF-8" />
+                                </StackPanel>
+                            </StackPanel>
+                        </local:MyCard>
+                        <local:MyCard Margin="0,0,0,12">
+                            <StackPanel Margin="15,13">
+                                <TextBlock Text="server.properties 可视化编辑" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="MOTD" Width="84" VerticalAlignment="Center" />
+                                    <local:MyTextBox x:Name="TxtCfgMotd" Width="300" HintText="服务器简介，支持颜色符号 §" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="端口" Width="84" VerticalAlignment="Center" />
+                                    <local:MyTextBox x:Name="TxtCfgPort" Width="100" HintText="25565" Margin="0,0,24,0" />
+                                    <TextBlock Text="最大玩家" Width="84" VerticalAlignment="Center" />
+                                    <local:MyTextBox x:Name="TxtCfgMaxPlayers" Width="100" HintText="20" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="游戏模式" Width="84" VerticalAlignment="Center" />
+                                    <local:MyComboBox x:Name="ComboCfgGamemode" Width="120" Margin="0,0,24,0">
+                                        <local:MyComboBoxItem Content="survival" IsSelected="True" />
+                                        <local:MyComboBoxItem Content="creative" />
+                                        <local:MyComboBoxItem Content="adventure" />
+                                    </local:MyComboBox>
+                                    <TextBlock Text="难度" Width="60" VerticalAlignment="Center" />
+                                    <local:MyComboBox x:Name="ComboCfgDifficulty" Width="120">
+                                        <local:MyComboBoxItem Content="easy" IsSelected="True" />
+                                        <local:MyComboBoxItem Content="peaceful" />
+                                        <local:MyComboBoxItem Content="normal" />
+                                        <local:MyComboBoxItem Content="hard" />
+                                    </local:MyComboBox>
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="正版验证" Width="84" VerticalAlignment="Center" />
+                                    <local:MyComboBox x:Name="ComboCfgOnline" Width="120" Margin="0,0,24,0">
+                                        <local:MyComboBoxItem Content="开启" IsSelected="True" />
+                                        <local:MyComboBoxItem Content="关闭" />
+                                    </local:MyComboBox>
+                                    <TextBlock Text="白名单" Width="60" VerticalAlignment="Center" />
+                                    <local:MyComboBox x:Name="ComboCfgWhite" Width="120">
+                                        <local:MyComboBoxItem Content="关闭" IsSelected="True" />
+                                        <local:MyComboBoxItem Content="开启" />
+                                    </local:MyComboBox>
+                                </StackPanel>
+                                <TextBlock Text="完整配置（原始 server.properties，保存时同步上方可视化字段）" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="0,4,0,4" />
+                                <TextBox x:Name="TxtPropsRaw" AcceptsReturn="True" TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12"
+                                         VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" Height="150"
+                                         Background="{StaticResource ColorBrushBg1}" BorderThickness="0" Padding="8" />
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                    <local:MyButton x:Name="BtnCfgLoadProps" Text="重新读取" Padding="13,7" Margin="0,0,10,0" />
+                                    <local:MyButton x:Name="BtnCfgSaveProps" Text="保存 server.properties" Padding="13,7" ColorType="Highlight" />
+                                </StackPanel>
+                            </StackPanel>
+                        </local:MyCard>
+                        <local:MyCard>
+                            <StackPanel Margin="15,13">
+                                <TextBlock Text="EULA / 白名单 / OP" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                                <local:MyCheckBox x:Name="CheckCfgEula" Text="已同意 Minecraft EULA（eula.txt 写入 eula=true）" Margin="0,0,0,10" />
+                                <TextBlock Text="白名单名单（每行一个玩家名，保存到 whitelist.txt）" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="0,0,0,4" />
+                                <TextBox x:Name="TxtCfgWhitelist" AcceptsReturn="True" FontFamily="Consolas" FontSize="12" Height="70"
+                                         VerticalScrollBarVisibility="Auto" Background="{StaticResource ColorBrushBg1}" BorderThickness="0" Padding="8" Margin="0,0,0,10" />
+                                <TextBlock Text="OP 列表（每行一个玩家名，保存时生成 ops.json）" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="0,0,0,4" />
+                                <TextBox x:Name="TxtCfgOps" AcceptsReturn="True" FontFamily="Consolas" FontSize="12" Height="70"
+                                         VerticalScrollBarVisibility="Auto" Background="{StaticResource ColorBrushBg1}" BorderThickness="0" Padding="8" Margin="0,0,0,10" />
+                                <local:MyButton x:Name="BtnCfgSaveLists" Text="保存 EULA 与名单" Padding="13,7" ColorType="Highlight" />
+                            </StackPanel>
+                        </local:MyCard>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 日志输出 -->
+                <Grid x:Name="PanLog" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="2,0,2,12">
+                        <TextBlock Text="日志输出" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        <local:MyButton x:Name="BtnMslLogClear" Text="清空日志" HorizontalAlignment="Right" Padding="13,7" />
+                    </Grid>
+                    <TextBox x:Name="TxtMslLog" Grid.Row="1" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="340"
+                             Background="{StaticResource ColorBrushBg1}" Foreground="{StaticResource ColorBrushGray1}" FontFamily="Consolas" FontSize="12" Padding="10" />
+                </Grid>
+
+                <!-- 控制台 -->
+                <Grid x:Name="PanPanel" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="2,0,2,10">
+                        <TextBlock Text="控制台" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <TextBlock x:Name="LabMslConsState" Text="● 已停止" VerticalAlignment="Center" FontSize="13" Margin="0,0,14,0" />
+                            <TextBlock x:Name="LabMslConsCore" Text="" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextTrimming="CharacterEllipsis" MaxWidth="260" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Grid.Row="1" Background="#1E1E1E" CornerRadius="8" Padding="12,10" Margin="0,0,0,10" Height="360">
+                        <TextBox x:Name="TxtMslConsole" IsReadOnly="True" Background="Transparent" BorderThickness="0"
+                                 Foreground="#5FD75F" FontFamily="Consolas" FontSize="13" TextWrapping="Wrap"
+                                 VerticalScrollBarVisibility="Auto" SelectionBrush="#3F7F3F" />
+                    </Border>
+
+                    <Grid Grid.Row="2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <local:MyTextBox x:Name="TxtMslCmd" Grid.Column="0" HintText="/ (指令)，按回车或点击发送" Margin="0,0,10,0" Height="34" />
+                        <local:MyButton x:Name="BtnMslSend" Grid.Column="1" Text="发送" Padding="16,7" ColorType="Highlight" Margin="0,0,10,0" />
+                        <local:MyButton x:Name="BtnMslMore" Grid.Column="2" Text="更多操作" Padding="16,7" Margin="0,0,10,0">
+                            <local:MyButton.ContextMenu>
+                                <ContextMenu>
+                                    <local:MyMenuItem Header="清空控制台" Tag="clear" />
+                                    <local:MyMenuItem Header="重启服务器" Tag="restart" />
+                                    <local:MyMenuItem Header="打开实例目录" Tag="folder" />
+                                    <local:MyMenuItem Header="强制结束进程" Tag="force" />
+                                </ContextMenu>
+                            </local:MyButton.ContextMenu>
+                        </local:MyButton>
+                        <local:MyButton x:Name="BtnMslKill" Grid.Column="3" Text="关服" Padding="16,7" ColorType="Red" />
+                    </Grid>
+                </Grid>
+
+                <!-- 映射（隧道列表） -->
+                <Grid x:Name="PanMap" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Grid.Row="0" Margin="2,0,2,14">
+                        <TextBlock Text="隧道列表（双击进入详情页）" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        <local:MyButton x:Name="BtnMslFrpInfo" Text="我的MSL Frp信息" Padding="14,7" HorizontalAlignment="Right" ColorType="Highlight" />
+                    </Grid>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <!-- 运行中的隧道卡片 -->
+                            <Border x:Name="PanTunnelCard" Background="{StaticResource ColorBrushBg1}" CornerRadius="8" Padding="14,11" Margin="2,0,2,8" Visibility="Collapsed">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="msl_map" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                    <TextBlock x:Name="LabTunnelDesc" Text="" FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                    <TextBlock x:Name="LabMapState" Text="映射运行中" FontSize="12.5" Foreground="#2E9BF0" VerticalAlignment="Center" Margin="12,0,0,0" FontWeight="Bold" />
+                                </StackPanel>
+                            </Border>
+                            <!-- 添加隧道表单 -->
+                            <Border x:Name="PanMapForm" Background="{StaticResource ColorBrushBg1}" CornerRadius="8" Padding="16,13" Margin="2,0,2,8" Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock Text="添加隧道（快速映射）" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="服务器地址" Width="84" VerticalAlignment="Center" />
+                                        <local:MyTextBox x:Name="TxtMapAddr" Width="220" HintText="FRP 服务端地址" Margin="0,0,24,0" />
+                                        <TextBlock Text="服务端口" Width="70" VerticalAlignment="Center" />
+                                        <local:MyTextBox x:Name="TxtMapPort" Width="100" HintText="7000" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                        <TextBlock Text="Token" Width="84" VerticalAlignment="Center" />
+                                        <local:MyTextBox x:Name="TxtMapToken" Width="220" HintText="FRP 服务端令牌，可留空" Margin="0,0,24,0" />
+                                        <TextBlock Text="远程端口" Width="70" VerticalAlignment="Center" />
+                                        <local:MyTextBox x:Name="TxtMapRemote" Width="100" HintText="25565" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="本地端口" Width="84" VerticalAlignment="Center" />
+                                        <local:MyTextBox x:Name="TxtMapLocal" Width="100" HintText="25565" Margin="0,0,14,0" />
+                                        <TextBlock Text="即 server.properties 中的 server-port" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <local:MyButton x:Name="BtnMapStart" Text="生成配置并启动映射" Padding="16,8" ColorType="Highlight" Margin="0,0,12,0" />
+                                        <local:MyButton x:Name="BtnMapStop" Text="停止映射" Padding="16,8" ColorType="Red" />
+                                    </StackPanel>
+                                    <TextBlock Text="内置 frpc 存放于 GloriaTools\Frp 目录，与 FRP 联机模式共用；映射配置将保存到 GloriaTools\Frp\msl_map.ini。"
+                                               FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="17" />
+                                </StackPanel>
+                            </Border>
+                            <!-- 空状态 -->
+                            <StackPanel x:Name="PanMapEmpty" HorizontalAlignment="Center" Margin="0,80,0,0">
+                                <Path Data="M3,4 H21 V17 H14 L12,20 L10,17 H3 Z M3,4 V17" Stroke="#C9D6E2" StrokeThickness="1.6" Width="72" Height="56" Stretch="Uniform" HorizontalAlignment="Center" Fill="#EDF3F8" />
+                                <TextBlock Text="暂无数据" FontSize="13" Foreground="{StaticResource ColorBrushGray3}" HorizontalAlignment="Center" Margin="0,10,0,0" />
+                                <TextBlock Text="点击右下角「添加隧道」创建一条 FRP 映射吧~" FontSize="12" Foreground="{StaticResource ColorBrushGray4}" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ScrollViewer>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="2,10,2,0">
+                        <local:MyButton x:Name="BtnTunnelAdd" Text="＋ 添加隧道" Padding="16,8" ColorType="Highlight" Margin="0,0,10,0" />
+                        <local:MyButton x:Name="BtnTunnelDel" Text="× 删除选中" Padding="16,8" ColorType="Red" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- 联机（点对点联机） -->
+                <ScrollViewer x:Name="PanOnline" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Grid Margin="2,0,2,12">
+                            <TextBlock Text="点对点联机" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                <local:MyButton x:Name="BtnOnlineGuide" Text="联机教程" Padding="12,6" ColorType="Highlight" Margin="0,0,8,0" />
+                                <local:MyButton x:Name="BtnOnlineSite" Text="打开网站" Padding="12,6" ColorType="Highlight" />
+                            </StackPanel>
+                        </Grid>
+                        <!-- 模式切换 -->
+                        <Border Background="{StaticResource ColorBrushBg1}" CornerRadius="8" Padding="6,5" HorizontalAlignment="Left" Margin="2,0,2,12">
+                            <StackPanel Orientation="Horizontal">
+                                <local:MyRadioButton x:Name="BtnOnlineP2P" Text="点对点联机 (P2P)" ColorType="Highlight" Padding="14,6" Margin="0,0,6,0" />
+                                <local:MyRadioButton x:Name="BtnOnlineStun" Text="STUN 随机(重连)" ColorType="Highlight" Padding="14,6" />
+                            </StackPanel>
+                        </Border>
+                        <!-- 警告 -->
+                        <Border Background="#FFF6E8" CornerRadius="8" Padding="14,10" Margin="2,0,2,12">
+                            <StackPanel Orientation="Horizontal">
+                                <Path Data="M12,2 A10,10 0 1 0 12.01,2 Z M11,9 H13 V17 H11 Z M11,6.4 H13 V8.2 H11 Z" Fill="#F5A623" Width="20" Height="20" Stretch="Uniform" VerticalAlignment="Top" Margin="0,2,10,0" />
+                                <TextBlock Text="注意：此功能尚不稳定，无法穿透所有类型的 NAT，若联机失败，请尝试开启服务器并使用内网映射联机！若仍无法联机，请到网上寻找解决方法或尝试开启服务器并使用内网映射联机！"
+                                           FontSize="12" Foreground="#B26A00" TextWrapping="Wrap" LineHeight="17" VerticalAlignment="Center" MaxWidth="520" />
+                            </StackPanel>
+                        </Border>
+                        <!-- 服务器状态 -->
+                        <StackPanel Orientation="Horizontal" Margin="2,0,2,12">
+                            <TextBlock Text="服务器状态：" FontSize="13.5" VerticalAlignment="Center" />
+                            <TextBlock x:Name="LabOnlineState" Text="可用" FontSize="13.5" FontWeight="Bold" Foreground="#2FA35C" VerticalAlignment="Center" Margin="0,0,12,0" />
+                            <local:MyButton x:Name="BtnOnlineRefresh" Text="刷新" Padding="12,5" />
+                        </StackPanel>
+                        <!-- 创建房间 -->
+                        <Border x:Name="HeadOnlineCreate" Background="{StaticResource ColorBrushBg1}" CornerRadius="8" Padding="14,0" Height="44" Margin="2,0,2,4" Cursor="Hand">
+                            <Grid>
+                                <TextBlock Text="创建房间——房主" FontSize="13.5" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                                <Path x:Name="ArrowOnlineCreate" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
+                            </Grid>
+                        </Border>
+                        <StackPanel x:Name="BodyOnlineCreate" Margin="14,8,14,8">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="房间号：" Width="76" VerticalAlignment="Center" FontSize="13" />
+                                <local:MyTextBox x:Name="TxtOnlineRoom" Width="180" HintText="创建后自动生成" Margin="0,0,28,0" IsEnabled="False" />
+                                <TextBlock Text="房间密码：" Width="76" VerticalAlignment="Center" FontSize="13" />
+                                <local:MyTextBox x:Name="TxtOnlinePwd" Width="180" HintText="可留空" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="游戏端口：" Width="76" VerticalAlignment="Center" FontSize="13" />
+                                <local:MyTextBox x:Name="TxtOnlineGamePort" Width="120" HintText="25565" Margin="0,0,20,0" />
+                                <local:MyButton x:Name="BtnOnlineCreate" Text="点击创建房间" Padding="16,7" ColorType="Highlight" />
+                            </StackPanel>
+                        </StackPanel>
+                        <!-- 进入房间 -->
+                        <Border x:Name="HeadOnlineJoin" Background="{StaticResource ColorBrushBg1}" CornerRadius="8" Padding="14,0" Height="44" Margin="2,0,2,4" Cursor="Hand">
+                            <Grid>
+                                <TextBlock Text="进入房间——成员" FontSize="13.5" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                                <Path x:Name="ArrowOnlineJoin" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
+                            </Grid>
+                        </Border>
+                        <StackPanel x:Name="BodyOnlineJoin" Margin="14,8,14,8" Visibility="Collapsed">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="房间号：" Width="76" VerticalAlignment="Center" FontSize="13" />
+                                <local:MyTextBox x:Name="TxtOnlineJoinRoom" Width="180" HintText="房主给你的房间号" Margin="0,0,28,0" />
+                                <TextBlock Text="房间密码：" Width="76" VerticalAlignment="Center" FontSize="13" />
+                                <local:MyTextBox x:Name="TxtOnlineJoinPwd" Width="180" HintText="可留空" />
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="游戏端口：" Width="76" VerticalAlignment="Center" FontSize="13" />
+                                <local:MyTextBox x:Name="TxtOnlineJoinPort" Width="120" HintText="25565" Margin="0,0,20,0" />
+                                <local:MyButton x:Name="BtnOnlineJoin" Text="加入房间" Padding="16,7" ColorType="Highlight" />
+                            </StackPanel>
+                        </StackPanel>
+                        <!-- 日志 -->
+                        <TextBox x:Name="TxtOnlineLog" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" Height="150" Margin="2,4,2,0"
+                                 Text="等待隧道启动..." Background="{StaticResource ColorBrushBg1}" BorderThickness="0" Padding="10"
+                                 FontFamily="Consolas" FontSize="12" Foreground="{StaticResource ColorBrushGray2}" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 设置 -->
+                <ScrollViewer x:Name="PanSet" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Grid Margin="2,0,2,14">
+                            <TextBlock Text="设置" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        </Grid>
+                        <local:MyCard Margin="0,0,0,12">
+                            <StackPanel Margin="15,13">
+                                <TextBlock Text="全局设置" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="默认 Java" Width="84" VerticalAlignment="Center" />
+                                    <local:MyTextBox x:Name="TxtSetJava" Width="300" HintText="实例未指定 Java 时使用" Margin="0,0,10,0" />
+                                    <local:MyButton x:Name="BtnSetJava" Text="浏览" Padding="13,7" Margin="0,0,10,0" />
+                                    <local:MyButton x:Name="BtnSetSave" Text="保存" Padding="13,7" ColorType="Highlight" />
+                                </StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <local:MyButton x:Name="BtnSetFolder" Text="打开数据目录" Padding="13,7" Margin="0,0,10,0" />
+                                    <local:MyButton x:Name="BtnSetClear" Text="清理下载缓存" Padding="13,7" />
+                                </StackPanel>
+                                <TextBlock Text="数据目录：GloriaTools\MSL（服务器实例保存在其下 Servers 子目录，实例列表为 servers.json）。"
+                                           FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="17" />
+                            </StackPanel>
+                        </local:MyCard>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 关于 -->
+                <ScrollViewer x:Name="PanAbout" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Grid Margin="2,0,2,14">
+                            <TextBlock Text="关于" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        </Grid>
+                        <local:MyCard Margin="0,0,0,12">
+                            <StackPanel Margin="15,13">
+                                <TextBlock Text="Minecraft Server Launcher（MSL）开服模块" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                                <TextBlock Text="本模块按照 MSL / MSLX 的界面与交互复刻：主页、服务器（实例列表）、映射（隧道列表）、联机（点对点联机）、设置、关于六大板块。"
+                                           FontSize="12" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,8" />
+                                <TextBlock Text="完整的 MSL 开服能力：多服务器实例管理、在线下载原版/插件/模组/基岩版等多种服务端核心、可视化编辑 server.properties、白名单与 OP 管理、安全关服，以及 frpc 隧道端口映射与点对点联机。"
+                                           FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,8" />
+                                <TextBlock Text="所有实例数据保存在启动器数据目录 GloriaTools\MSL\Servers 下，映射配置保存在 GloriaTools\Frp 目录，与 PCL 本体共用同一数据文件夹。"
+                                           FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" LineHeight="18" />
+                            </StackPanel>
+                        </local:MyCard>
+                    </StackPanel>
+                </ScrollViewer>
+
             </Grid>
         </Grid>
-
-        <!-- 端口映射 -->
-        <ScrollViewer Grid.Row="2" x:Name="PanMap" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <local:MyCard Margin="0,0,0,12">
-                    <StackPanel Margin="15,13">
-                        <TextBlock Text="快速映射（生成 frpc 配置并启动）" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="服务器地址" Width="84" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtMapAddr" Width="220" HintText="FRP 服务端地址" Margin="0,0,24,0" />
-                            <TextBlock Text="服务端口" Width="70" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtMapPort" Width="100" HintText="7000" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                            <TextBlock Text="Token" Width="84" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtMapToken" Width="220" HintText="FRP 服务端令牌，可留空" Margin="0,0,24,0" />
-                            <TextBlock Text="远程端口" Width="70" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtMapRemote" Width="100" HintText="25565" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="本地端口" Width="84" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtMapLocal" Width="100" HintText="25565" Margin="0,0,14,0" />
-                            <TextBlock Text="即 server.properties 中的 server-port" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <local:MyButton x:Name="BtnMapStart" Text="生成配置并启动映射" Padding="16,8" ColorType="Highlight" Margin="0,0,12,0" />
-                            <local:MyButton x:Name="BtnMapStop" Text="停止映射" Padding="16,8" ColorType="Red" Margin="0,0,12,0" />
-                            <TextBlock x:Name="LabMapState" Text="映射未运行" FontSize="13" Foreground="{StaticResource ColorBrushGray2}" VerticalAlignment="Center" />
-                        </StackPanel>
-                        <TextBlock Text="需要先在「纯 FRP 联机方案」页下载 frpc 客户端（两个页面共用同一 frpc）。映射配置将保存到 GloriaTools\Frp\msl_map.ini。"
-                                   FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="17" />
-                    </StackPanel>
-                </local:MyCard>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- 设置 -->
-        <ScrollViewer Grid.Row="2" x:Name="PanSet" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <local:MyCard Margin="0,0,0,12">
-                    <StackPanel Margin="15,13">
-                        <TextBlock Text="全局设置" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <TextBlock Text="默认 Java" Width="84" VerticalAlignment="Center" />
-                            <local:MyTextBox x:Name="TxtSetJava" Width="300" HintText="实例未指定 Java 时使用" Margin="0,0,10,0" />
-                            <local:MyButton x:Name="BtnSetJava" Text="浏览" Padding="13,7" Margin="0,0,10,0" />
-                            <local:MyButton x:Name="BtnSetSave" Text="保存" Padding="13,7" ColorType="Highlight" />
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <local:MyButton x:Name="BtnSetFolder" Text="打开数据目录" Padding="13,7" Margin="0,0,10,0" />
-                            <local:MyButton x:Name="BtnSetClear" Text="清理下载缓存" Padding="13,7" />
-                        </StackPanel>
-                        <TextBlock Text="数据目录：GloriaTools\MSL（服务器实例保存在其下 Servers 子目录，实例列表为 servers.json）。"
-                                   FontSize="12" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="17" />
-                    </StackPanel>
-                </local:MyCard>
-            </StackPanel>
-        </ScrollViewer>
-    </Grid>
+    </Border>
 </local:MyPageRight>

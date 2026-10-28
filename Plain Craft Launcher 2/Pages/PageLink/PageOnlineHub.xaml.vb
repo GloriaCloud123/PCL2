@@ -74,6 +74,7 @@ Public Class PageOnlineHub
         If ContentMsl.Content IsNot Nothing Then Return
         '整页嵌入：直接把 PageMslMain 放入内容区，确保 Loaded 与初始化正常、全部子页与控件完整呈现
         PageMsl = New PageMslMain()
+        PageMsl.VerticalAlignment = VerticalAlignment.Top
         ContentMsl.Content = PageMsl
         PageMsl.EnsureInit()
     End Sub
@@ -82,6 +83,7 @@ Public Class PageOnlineHub
         If ContentFrp.Content IsNot Nothing Then Return
         '整页嵌入：直接把 PageFrpMain 放入内容区，frpc 内置功能完整呈现
         PageFrp = New PageFrpMain()
+        PageFrp.VerticalAlignment = VerticalAlignment.Top
         ContentFrp.Content = PageFrp
         PageFrp.EnsureInit()
     End Sub

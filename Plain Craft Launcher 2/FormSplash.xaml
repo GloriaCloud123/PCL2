@@ -4,16 +4,19 @@
              WindowStyle="None" AllowsTransparency="True" Background="Transparent"
              ShowInTaskbar="False" ShowActivated="False"
              Width="420" Height="240" ResizeMode="NoResize" UseLayoutRounding="True">
-    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-        <Viewbox x:Name="BoxLogo" Width="120" Height="120" HorizontalAlignment="Center" Margin="0,0,0,14">
-            <Canvas Width="100" Height="58">
-                <Path Data="M26,29 v-25 h6 a7,7 180 0 1 0,14 h-6 M62.5,6.5 a10,11.5 180 1 0 0,18 M71,2.5 v24.5 h13.5"
-                      Stroke="{DynamicResource ColorBrush1}" StrokeThickness="5.4" Stretch="None" />
-            </Canvas>
-        </Viewbox>
-        <TextBlock x:Name="LabSplashTitle" Text="GloriaCloud" FontSize="26" FontWeight="Bold"
-                   Foreground="{DynamicResource ColorBrush1}" HorizontalAlignment="Center" />
-        <TextBlock x:Name="LabSplashSub" Text="正在启动…" FontSize="13" Foreground="{StaticResource ColorBrushGray3}"
-                   HorizontalAlignment="Center" Margin="0,6,0,0" />
-    </StackPanel>
+    <!-- 白底圆角启动页 -->
+    <Border Background="White" CornerRadius="14">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+            <Viewbox x:Name="BoxLogo" Width="120" Height="120" HorizontalAlignment="Center" Margin="0,0,0,14">
+                <Canvas Width="100" Height="58">
+                    <Path Data="M26,29 v-25 h6 a7,7 180 0 1 0,14 h-6 M62.5,6.5 a10,11.5 180 1 0 0,18 M71,2.5 v24.5 h13.5"
+                          Stroke="{DynamicResource ColorBrush1}" StrokeThickness="5.4" Stretch="None" />
+                </Canvas>
+            </Viewbox>
+            <TextBlock x:Name="LabSplashTitle" Text="GloriaCloud" FontSize="26" FontWeight="Bold"
+                       Foreground="{DynamicResource ColorBrush1}" HorizontalAlignment="Center" />
+            <TextBlock x:Name="LabSplashSub" Text="正在启动…" FontSize="13" Foreground="{StaticResource ColorBrushGray3}"
+                       HorizontalAlignment="Center" Margin="0,6,0,0" />
+        </StackPanel>
+    </Border>
 </Window>
