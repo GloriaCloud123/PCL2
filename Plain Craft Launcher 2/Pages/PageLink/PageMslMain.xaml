@@ -216,7 +216,7 @@
                                     <local:MyRadioButton x:Name="RdoTermPlain" Text="不启用指令补全" ColorType="Highlight" Margin="0,0,0,8" />
                                     <TextBlock Text="传统模式：传统的服务器启动模式，缺少部分真实终端特性，无法使用 Tab 键补全指令。但比较稳定，可切换输入和输出编码。"
                                                FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" LineHeight="18" Margin="28,0,8,18" />
-                                    <local:MyRadioButton x:Name="RdoTermConpty" Text="启用指令补全（测试中）" ColorType="Highlight" Margin="0,0,0,8" Foreground="#2E9BF0" />
+                                    <local:MyRadioButton x:Name="RdoTermConpty" Text="启用指令补全（测试中）" ColorType="Highlight" Margin="0,0,0,8" />
                                     <TextBlock Text="伪终端（ConPTY）模式：目前可用 Tab 键指令补全功能，且还在测试中，若出现问题请及时关闭此功能。"
                                                FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" LineHeight="18" Margin="28,0,8,0" />
                                 </StackPanel>
