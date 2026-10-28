@@ -241,7 +241,8 @@
                 </ScrollViewer>
 
                 <!-- ================= 服务器管理（MyServer 风格） ================= -->
-                <Grid x:Name="PanSrv" Visibility="Collapsed">
+                <ScrollViewer x:Name="PanSrv" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                    <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
@@ -721,9 +722,10 @@
                                     <local:MyButton x:Name="BtnTaskRun" Text="▶ 启动定时任务" Padding="18,8" ColorType="Highlight" HorizontalAlignment="Right" />
                                 </Grid>
                             </StackPanel>
-                        </local:MyCard>
-                    </Grid>
-                </Grid>
+                </local:MyCard>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
 
                 <!-- 映射（隧道列表） -->
                 <Grid x:Name="PanMap" Visibility="Collapsed">

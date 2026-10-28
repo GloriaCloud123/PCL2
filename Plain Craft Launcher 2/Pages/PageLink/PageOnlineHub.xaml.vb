@@ -13,57 +13,54 @@ Public Class PageOnlineHub
 
     Private Sub Init() Handles Me.Loaded
         LoadGlcOptions()
-        '默认展开 MSL 与 FRP 两个板块，让完整的开服界面与内置 frpc 功能一眼可见（GloriaCloud 板块点击标题展开）
+        '默认展开 MSL 板块（互斥单开，保证 MSL 占满内容区高度、内部可滚动完整显示）
         EnsureMslContent()
-        BodyMsl.Visibility = Visibility.Visible
-        ArrowMsl.RenderTransform = New System.Windows.Media.RotateTransform(180)
-        EnsureFrpContent()
-        BodyFrp.Visibility = Visibility.Visible
-        ArrowFrp.RenderTransform = New System.Windows.Media.RotateTransform(180)
+        OpenSection(SecMsl, ArrowMsl, "Msl")
     End Sub
 
     '===============================
-    '  手风琴板块切换
+    '  手风琴板块切换（互斥单开，一次只展开一个板块）
     '===============================
 
     Private Sub HeadMsl_Click() Handles HeadMsl.MouseLeftButtonUp
-        ToggleSection(BodyMsl, ArrowMsl, "Msl")
+        ToggleSection(SecMsl, ArrowMsl, "Msl")
     End Sub
 
     Private Sub HeadFrp_Click() Handles HeadFrp.MouseLeftButtonUp
-        ToggleSection(BodyFrp, ArrowFrp, "Frp")
+        ToggleSection(SecFrp, ArrowFrp, "Frp")
     End Sub
 
     Private Sub HeadGlc_Click() Handles HeadGlc.MouseLeftButtonUp
-        ToggleSection(BodyGlc, ArrowGlc, "Glc")
+        ToggleSection(SecGlc, ArrowGlc, "Glc")
     End Sub
 
-    Private Sub ToggleSection(Body As StackPanel, Arrow As System.Windows.Shapes.Path, Kind As String)
-        Dim Opening = Body.Visibility <> Visibility.Visible
-        '各板块独立展开/收起（不再互斥，方便同时查看 MSL 与 FRP）
-        If Opening Then
+    '展开某个板块并收起其余板块，确保当前板块占满内容区高度（内部 ScrollViewer 可正常工作）
+    Private Sub OpenSection(Sec As Grid, Arrow As System.Windows.Shapes.Path, Kind As String)
+        SecMsl.Visibility = If(Sec Is SecMsl, Visibility.Visible, Visibility.Collapsed)
+        SecFrp.Visibility = If(Sec Is SecFrp, Visibility.Visible, Visibility.Collapsed)
+        SecGlc.Visibility = If(Sec Is SecGlc, Visibility.Visible, Visibility.Collapsed)
+        AniStart({AaRotateTransform(ArrowMsl, If(Sec Is SecMsl, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowMsl")
+        AniStart({AaRotateTransform(ArrowFrp, If(Sec Is SecFrp, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowFrp")
+        AniStart({AaRotateTransform(ArrowGlc, If(Sec Is SecGlc, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowGlc")
+        If Sec.Visibility = Visibility.Visible Then
+            Sec.Opacity = 0
+            AniStart({AaOpacity(Sec, 1, 180,, New AniEaseOutFluent)}, "OnlineHubSec " & Kind)
+        End If
+    End Sub
+
+    Private Sub ToggleSection(Sec As Grid, Arrow As System.Windows.Shapes.Path, Kind As String)
+        If Sec.Visibility = Visibility.Visible Then
+            '已展开则收起当前板块
+            Sec.Visibility = Visibility.Collapsed
+            AniStart({AaRotateTransform(Arrow, 0, 160,, New AniEaseOutFluent)}, "OnlineHubArrow " & Arrow.Name)
+        Else
+            '未展开则展开（互斥单开，自动收起其余板块）
             Select Case Kind
                 Case "Msl" : EnsureMslContent()
                 Case "Frp" : EnsureFrpContent()
             End Select
-            Body.Visibility = Visibility.Visible
-            Body.Opacity = 0
-            AniStart({
-                AaOpacity(Body, 1, 180,, New AniEaseOutFluent),
-                AaTranslateY(Body, -10, 180,, New AniEaseOutFluent)
-            }, "OnlineHubBody " & Kind)
-        Else
-            Body.Visibility = Visibility.Collapsed
+            OpenSection(Sec, Arrow, Kind)
         End If
-        '箭头旋转（展开 180°，收起 0°）
-        AniStart({AaRotateTransform(Arrow, If(Opening, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow " & Arrow.Name)
-    End Sub
-
-    Private Sub CollapseSection(Body As StackPanel, Arrow As System.Windows.Shapes.Path)
-        If Body.Visibility = Visibility.Visible Then
-            Body.Visibility = Visibility.Collapsed
-        End If
-        AniStart({AaRotateTransform(Arrow, 0, 160)}, "OnlineHubArrow " & Arrow.Name)
     End Sub
 
     '===============================
@@ -72,9 +69,8 @@ Public Class PageOnlineHub
 
     Private Sub EnsureMslContent()
         If ContentMsl.Content IsNot Nothing Then Return
-        '整页嵌入：直接把 PageMslMain 放入内容区，确保 Loaded 与初始化正常、全部子页与控件完整呈现
+        '整页嵌入：直接把 PageMslMain 放入内容区，撑满高度以启用内部滚动，全部子页与控件完整呈现
         PageMsl = New PageMslMain()
-        PageMsl.VerticalAlignment = VerticalAlignment.Top
         ContentMsl.Content = PageMsl
         PageMsl.EnsureInit()
     End Sub
@@ -83,7 +79,6 @@ Public Class PageOnlineHub
         If ContentFrp.Content IsNot Nothing Then Return
         '整页嵌入：直接把 PageFrpMain 放入内容区，frpc 内置功能完整呈现
         PageFrp = New PageFrpMain()
-        PageFrp.VerticalAlignment = VerticalAlignment.Top
         ContentFrp.Content = PageFrp
         PageFrp.EnsureInit()
     End Sub
