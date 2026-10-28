@@ -20,6 +20,16 @@ Public Class PageMslMain
         Public Java As String = ""
         Public Memory As String = "自动"
         Public Args As String = ""
+        ''' <summary>是否启用伪终端（ConPTY）模式（创建时选择的终端模式）。</summary>
+        Public Conpty As Boolean = False
+    End Class
+
+    ''' <summary>定时任务模型（Cron 6字段：秒 分 时 日 月 周）。</summary>
+    Public Class MslTask
+        Public Cron As String = ""
+        Public Cmd As String = ""
+        Public LastRun As String = ""
+        <JsonIgnore()> Public LastKey As Integer = -1
     End Class
 
     '===============================
@@ -31,6 +41,7 @@ Public Class PageMslMain
     Private PathFrp As String = Paths.AppDataThenName & "GloriaTools\Frp\"
     Private PathServers As String = ""
     Private PathSettings As String = ""
+    Private PathTasks As String = ""
 
     Private Instances As New List(Of MslInstance)
     Private SelectedInst As MslInstance = Nothing
@@ -41,11 +52,18 @@ Public Class PageMslMain
     Private ManifestJson As String = ""
 
     Private CurrentMslPanel As FrameworkElement = Nothing
+    ''' <summary>最近创建成功的实例（用于终端模式选择页）。</summary>
+    Private LastCreated As MslInstance = Nothing
+    Private _ForceKilled As Boolean = False
 
     '日志缓冲：后台高频输出时先写入缓冲区，由定时器批量刷新到 UI，避免每行都跨线程刷新造成卡顿
     Private ConsBuf As New StringBuilder(), LogBuf As New StringBuilder()
     Private ConsLock As New Object()
     Private FlushTimer As DispatcherTimer = Nothing
+    ''' <summary>系统占用刷新定时器（仪表盘）。</summary>
+    Private SysTimer As DispatcherTimer = Nothing
+    ''' <summary>定时任务调度器（每秒评估 Cron）。</summary>
+    Private TaskTimer As DispatcherTimer = Nothing
 
     Private _InitDone As Boolean = False
 
@@ -61,19 +79,31 @@ Public Class PageMslMain
         _InitDone = True
         PathServers = PathMsl & "Servers\"
         PathSettings = PathMsl & "settings.json"
+        PathTasks = PathMsl & "tasks.json"
         '初始化默认子页（主页）显示，加载阶段不做动画，避免与页面进入动画冲突
         PanHome.Visibility = Visibility.Visible
         PanList.Visibility = Visibility.Collapsed
         PanCreate.Visibility = Visibility.Collapsed
-        PanConfig.Visibility = Visibility.Collapsed
-        PanLog.Visibility = Visibility.Collapsed
-        PanPanel.Visibility = Visibility.Collapsed
+        PanTermMode.Visibility = Visibility.Collapsed
+        PanSrv.Visibility = Visibility.Collapsed
         PanMap.Visibility = Visibility.Collapsed
         PanSet.Visibility = Visibility.Collapsed
         PanOnline.Visibility = Visibility.Collapsed
         PanAbout.Visibility = Visibility.Collapsed
+        '服务器管理内部页默认状态
+        PanSrvDash.Visibility = Visibility.Visible
+        PanSrvCons.Visibility = Visibility.Collapsed
+        PanSrvMods.Visibility = Visibility.Collapsed
+        PanSrvSet.Visibility = Visibility.Collapsed
+        PanSrvFunc.Visibility = Visibility.Collapsed
+        PanSrvTask.Visibility = Visibility.Collapsed
+        PanInstSet.Visibility = Visibility.Visible
+        PanInstProps.Visibility = Visibility.Collapsed
         CurrentMslPanel = PanHome
         BtnTabHome.Checked = True
+        BtnSrvDash.Checked = True
+        BtnInstTab.Checked = True
+        RdoTermPlain.Checked = True
         BtnOnlineP2P.Checked = True
         AttachMenu(BtnMslMore, AddressOf OnMslMenu)
         '定时器只在首次创建，避免每次进入页面重复创建叠加导致卡顿
@@ -82,7 +112,17 @@ Public Class PageMslMain
             AddHandler FlushTimer.Tick, AddressOf FlushMslLogs
             FlushTimer.Start()
         End If
+        If SysTimer Is Nothing Then
+            SysTimer = New DispatcherTimer() With {.Interval = TimeSpan.FromSeconds(2)}
+            AddHandler SysTimer.Tick, AddressOf SysTick
+            SysTimer.Start()
+        End If
+        If TaskTimer Is Nothing Then
+            TaskTimer = New DispatcherTimer() With {.Interval = TimeSpan.FromSeconds(1)}
+            AddHandler TaskTimer.Tick, AddressOf TaskTimerTick
+        End If
         LoadInstances()
+        LoadTasks()
         LoadSettings()
         UpdateCreateMode()
         RefreshMslState()
@@ -101,11 +141,11 @@ Public Class PageMslMain
     End Sub
 
     '===============================
-    '  子页切换（主页/服务器/新建/配置/日志/控制台/映射/设置）
+    '  子页切换（主页/服务器/新建/终端模式/服务器管理/映射/联机/设置/关于）
     '===============================
 
-    Private Sub TabMsl_Check(sender As Object, raiseByMouse As Boolean) Handles BtnTabHome.Check, BtnTabList.Check, BtnTabCreate.Check, BtnTabConfig.Check,
-                                                                                 BtnTabLog.Check, BtnTabPanel.Check, BtnTabMap.Check, BtnTabOnline.Check,
+    Private Sub TabMsl_Check(sender As Object, raiseByMouse As Boolean) Handles BtnTabHome.Check, BtnTabList.Check, BtnTabCreate.Check, BtnTabTerm.Check,
+                                                                                 BtnTabSrv.Check, BtnTabMap.Check, BtnTabOnline.Check,
                                                                                  BtnTabAbout.Check, BtnTabSet.Check
         Dim T As FrameworkElement
         If BtnTabHome.Checked Then
@@ -114,12 +154,10 @@ Public Class PageMslMain
             T = PanList
         ElseIf BtnTabCreate.Checked Then
             T = PanCreate
-        ElseIf BtnTabConfig.Checked Then
-            T = PanConfig
-        ElseIf BtnTabLog.Checked Then
-            T = PanLog
-        ElseIf BtnTabPanel.Checked Then
-            T = PanPanel
+        ElseIf BtnTabTerm.Checked Then
+            T = PanTermMode
+        ElseIf BtnTabSrv.Checked Then
+            T = PanSrv
         ElseIf BtnTabMap.Checked Then
             T = PanMap
         ElseIf BtnTabOnline.Checked Then
@@ -131,6 +169,53 @@ Public Class PageMslMain
         End If
         SwitchMslTab(T)
     End Sub
+
+    '服务器管理内部页签切换
+    Private Sub SrvTab_Check(sender As Object, raiseByMouse As Boolean) Handles BtnSrvDash.Check, BtnSrvCons.Check, BtnSrvMods.Check,
+                                                                                 BtnSrvSet.Check, BtnSrvFunc.Check, BtnSrvTask.Check
+        Dim T As FrameworkElement
+        If BtnSrvDash.Checked Then
+            T = PanSrvDash
+        ElseIf BtnSrvCons.Checked Then
+            T = PanSrvCons
+        ElseIf BtnSrvMods.Checked Then
+            T = PanSrvMods
+            RefreshMods()
+        ElseIf BtnSrvFunc.Checked Then
+            T = PanSrvFunc
+        ElseIf BtnSrvTask.Checked Then
+            T = PanSrvTask
+            RefreshTasks()
+        Else
+            T = PanSrvSet
+            RefreshDash()
+        End If
+        SwitchSrvTab(T)
+    End Sub
+
+    '实例设置子页签：实例设置 / 服务器配置
+    Private Sub InstTab_Check(sender As Object, raiseByMouse As Boolean) Handles BtnInstTab.Check, BtnPropTab.Check
+        If BtnInstTab Is Nothing OrElse PanInstSet Is Nothing Then Return
+        PanInstSet.Visibility = If(BtnInstTab.Checked, Visibility.Visible, Visibility.Collapsed)
+        PanInstProps.Visibility = If(BtnPropTab.Checked, Visibility.Visible, Visibility.Collapsed)
+        If BtnPropTab.Checked Then LoadProps() : LoadLists()
+    End Sub
+
+    '服务器管理内部页平滑切换（与主子页一致：淡入 + 轻微上滑）
+    Private Sub SwitchSrvTab(Target As FrameworkElement)
+        If Target Is CurrentSrvPanel Then Return
+        If CurrentSrvPanel IsNot Nothing Then CurrentSrvPanel.Visibility = Visibility.Collapsed
+        CurrentSrvPanel = Target
+        Target.Visibility = Visibility.Visible
+        Target.Opacity = 0
+        Target.RenderTransform = New TranslateTransform(0, 12)
+        AniStart({
+            AaOpacity(Target, 1, 160,, New AniEaseOutFluent),
+            AaTranslateY(Target, -12, 160,, New AniEaseOutFluent)
+        }, "MslSrvTabSwitch " & Target.Name)
+    End Sub
+
+    Private CurrentSrvPanel As FrameworkElement = Nothing
 
     '平滑切换子页：先折叠旧面板，再以「淡入 + 轻微上滑」呈现新面板（使用 Translate 变换，不触发布局重排，保证流畅）
     Private Sub SwitchMslTab(Target As FrameworkElement)
@@ -172,7 +257,8 @@ Public Class PageMslMain
                         .CorePath = If(O("CorePath") Is Nothing, "", O("CorePath").ToString()),
                         .Java = If(O("Java") Is Nothing, "", O("Java").ToString()),
                         .Memory = If(O("Memory") Is Nothing, "自动", O("Memory").ToString()),
-                        .Args = If(O("Args") Is Nothing, "", O("Args").ToString())
+                        .Args = If(O("Args") Is Nothing, "", O("Args").ToString()),
+                        .Conpty = If(O("Conpty") Is Nothing, False, CBool(O("Conpty")))
                     }
                     Instances.Add(I)
                 Next
@@ -188,7 +274,7 @@ Public Class PageMslMain
             Directory.CreateDirectory(PathServers)
             Dim Arr As New JArray()
             For Each I As MslInstance In Instances
-                Arr.Add(New JObject From {{"Name", I.Name}, {"CorePath", I.CorePath}, {"Java", I.Java}, {"Memory", I.Memory}, {"Args", I.Args}})
+                Arr.Add(New JObject From {{"Name", I.Name}, {"CorePath", I.CorePath}, {"Java", I.Java}, {"Memory", I.Memory}, {"Args", I.Args}, {"Conpty", I.Conpty}})
             Next
             File.WriteAllText(PathServers & "servers.json", Arr.ToString(Formatting.Indented), Encoding.UTF8)
         Catch ex As Exception
@@ -218,12 +304,8 @@ Public Class PageMslMain
             Dim SpR As New StackPanel With {.Orientation = Orientation.Horizontal, .VerticalAlignment = VerticalAlignment.Center}
             Dim BStart As New MyButton With {.Text = "启动", .Padding = New Thickness(12, 5, 12, 5), .ColorType = MyButton.ColorState.Highlight, .Margin = New Thickness(0, 0, 8, 0)}
             AddHandler BStart.Click, Sub() StartInstance(Inst)
-            Dim BCfg As New MyButton With {.Text = "配置", .Padding = New Thickness(12, 5, 12, 5), .Margin = New Thickness(0, 0, 8, 0)}
-            AddHandler BCfg.Click, Sub()
-                                       SelectedInst = Inst
-                                       SetConfigTarget()
-                                       BtnTabConfig.Checked = True
-                                   End Sub
+            Dim BCfg As New MyButton With {.Text = "管理", .Padding = New Thickness(12, 5, 12, 5), .Margin = New Thickness(0, 0, 8, 0)}
+            AddHandler BCfg.Click, Sub() SrvOpen(Inst)
             Dim BDel As New MyButton With {.Text = "删除", .Padding = New Thickness(12, 5, 12, 5), .ColorType = MyButton.ColorState.Red}
             AddHandler BDel.Click, Sub() DeleteInstance(Inst)
             SpR.Children.Add(BStart) : SpR.Children.Add(BCfg) : SpR.Children.Add(BDel)
@@ -353,12 +435,14 @@ Public Class PageMslMain
                                            LogMsl("核心已就绪：" & Core)
                                            Hint("核心下载完成！填写实例名称后点击「创建实例」。", HintType.Green)
                                            BtnCreateDownload.IsEnabled = True
+                                           DlHide()
                                        End Sub)
                            Catch ex As Exception
                                RunInUi(Sub()
                                            LogMsl("核心下载失败：" & ex.Message)
                                            Hint("核心下载失败，请查看日志输出。", HintType.Red)
                                            BtnCreateDownload.IsEnabled = True
+                                           DlHide()
                                        End Sub)
                            End Try
                        End Sub)
@@ -372,6 +456,7 @@ Public Class PageMslMain
         Directory.CreateDirectory(DestDir)
         If T.Contains("Fabric") Then
             Dim Game As String = If(Ver = "", LatestVanilla(), Ver)
+            DlShow("正在获取 Fabric 加载器信息……", Nothing)
             LogMsl("正在获取 Fabric 加载器信息……")
             Dim Loaders = JArray.Parse(Client.GetStringAsync("https://meta.fabricmc.net/v2/versions/loader").GetAwaiter().GetResult())
             Dim Loader As String = Loaders(0)("version").ToString()
@@ -380,7 +465,7 @@ Public Class PageMslMain
             Dim Url As String = $"https://meta.fabricmc.net/v2/versions/loader/{Game}/{Loader}/{Inst}/server/jar"
             Dim Dest As String = DestDir & "fabric-server-" & Game & ".jar"
             LogMsl("开始下载 Fabric 服务端（游戏版本 " & Game & "，加载器 " & Loader & "）……")
-            DownloadFile(Url, Dest)
+            DownloadFile(Url, Dest, "正在下载 Fabric 服务端（" & Game & "，加载器 " & Loader & "）")
             Return Dest
         ElseIf T = "插件服务器" Then
             'PaperMC（Java 版插件服务端）
@@ -394,13 +479,14 @@ Public Class PageMslMain
         ElseIf T.Contains("NeoForge") Then
             Return InstallForgeLike("neoforge", Ver, DestDir)
         ElseIf T = "基岩版服务器" Then
+            DlShow("正在获取基岩版服务端（BDS）下载地址……", Nothing)
             LogMsl("正在获取基岩版服务端（BDS）下载地址……")
             Dim Html As String = Client.GetStringAsync("https://www.minecraft.net/en-us/download/server/bedrock").GetAwaiter().GetResult()
             Dim M As Match = Regex.Match(Html, "https://[^""' ]*bin-win/bedrock-server-[\d.]+\.zip")
             If Not M.Success Then Throw New Exception("未能从官网解析到 BDS 下载地址（页面结构可能已变化）")
             Dim ZipPath As String = DestDir & "bedrock-server.zip"
             LogMsl("开始下载 BDS：" & M.Value)
-            DownloadFile(M.Value, ZipPath)
+            DownloadFile(M.Value, ZipPath, "正在下载基岩版服务端（BDS）")
             ExtractZip(ZipPath, DestDir)
             File.Delete(ZipPath)
             Dim Exe As String = DestDir & "bedrock_server.exe"
@@ -426,13 +512,14 @@ Public Class PageMslMain
             Dim DlUrl As String = VJob("downloads")("server")("url").ToString()
             Dim Dest As String = DestDir & "server-" & Ver & ".jar"
             LogMsl("开始下载原版服务端核心（" & Ver & "）……")
-            DownloadFile(DlUrl, Dest)
+            DownloadFile(DlUrl, Dest, "正在下载原版服务端核心（" & Ver & "）")
             Return Dest
         End If
     End Function
 
     'PaperMC 系（paper/velocity）：取最新版本最新构建
     Private Function DownloadPaperLike(Project As String, Ver As String, DestDir As String, Label As String) As String
+        DlShow("正在获取 " & Label & " 版本信息……", Nothing)
         LogMsl("正在获取 " & Label & " 版本信息……")
         Dim Job As JObject = JObject.Parse(Client.GetStringAsync("https://api.papermc.io/v2/projects/" & Project).GetAwaiter().GetResult())
         Dim Versions As JArray = Job("versions")
@@ -444,7 +531,7 @@ Public Class PageMslMain
         Dim Url As String = $"https://api.papermc.io/v2/projects/{Project}/versions/{V}/builds/{B("build")}/downloads/{Name}"
         Dim Dest As String = DestDir & Name
         LogMsl("开始下载 " & Label & " 核心（" & V & " 构建 " & B("build").ToString() & "）……")
-        DownloadFile(Url, Dest)
+        DownloadFile(Url, Dest, "正在下载 " & Label & " 核心（" & V & "，构建 " & B("build").ToString() & "）")
         Return Dest
     End Function
 
@@ -452,6 +539,7 @@ Public Class PageMslMain
     Private Function InstallForgeLike(Kind As String, Ver As String, DestDir As String) As String
         Dim InstallerUrl As String = "", FullVer As String = ""
         If Kind = "forge" Then
+            DlShow("正在获取 Forge 推荐版本……", Nothing)
             LogMsl("正在获取 Forge 推荐版本……")
             Dim Promo As JObject = JObject.Parse(Client.GetStringAsync("https://files.minecraftforge.net/net/minecraftforge/forge/promotions_slim.json").GetAwaiter().GetResult())
             Dim Promos As JObject = Promo("promos")
@@ -460,6 +548,7 @@ Public Class PageMslMain
             If FullVer = "" Then FullVer = Promos("1.20.1-recommended").ToString() '回退到长期支持版
             InstallerUrl = $"https://maven.minecraftforge.net/net/minecraftforge/forge/{Game}-{FullVer}/forge-{Game}-{FullVer}-installer.jar"
         Else
+            DlShow("正在获取 NeoForge 最新版本……", Nothing)
             LogMsl("正在获取 NeoForge 最新版本……")
             Dim Vers As JArray = JArray.Parse(Client.GetStringAsync("https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/neoforge").GetAwaiter().GetResult())("versions")
             FullVer = Vers(Vers.Count - 1).ToString()
@@ -467,7 +556,8 @@ Public Class PageMslMain
         End If
         Dim InstJar As String = DestDir & "installer.jar"
         LogMsl("开始下载安装器（" & FullVer & "）……")
-        DownloadFile(InstallerUrl, InstJar)
+        DownloadFile(InstallerUrl, InstJar, "正在下载 " & Kind & " 安装器（" & FullVer & "）")
+        DlShow("正在安装 " & Kind & " 服务端（可能需要几分钟，请耐心等待）……", Nothing)
         LogMsl("正在静默安装服务端（可能需要几分钟，请耐心等待）……")
         Dim Java As String = If(TxtCreateJava.Text.Trim() <> "", TxtCreateJava.Text.Trim(), FindJavaAuto())
         If Java = "" OrElse Not File.Exists(Java) Then Throw New Exception("未找到可用的 Java，请先到「设置」页填写默认 Java")
@@ -554,6 +644,7 @@ Public Class PageMslMain
                                                LogMsl("整合包导入失败：" & ex.Message)
                                                Hint("整合包导入失败：" & ex.Message, HintType.Red)
                                                BtnCreateOk.IsEnabled = True
+                                               DlHide()
                                            End Sub)
                                End Try
                            End Sub)
@@ -575,6 +666,7 @@ Public Class PageMslMain
                                                LogMsl("快速开服失败：" & ex.Message)
                                                Hint("快速开服失败：" & ex.Message, HintType.Red)
                                                BtnCreateOk.IsEnabled = True
+                                               DlHide()
                                            End Sub)
                                End Try
                            End Sub)
@@ -628,7 +720,8 @@ Public Class PageMslMain
             .CorePath = Core,
             .Java = Java,
             .Memory = Mem,
-            .Args = ""
+            .Args = "",
+            .Conpty = ChkConpty.Checked
         }
         Instances.Add(Inst)
         SaveInstances()
@@ -639,26 +732,142 @@ Public Class PageMslMain
         LabCreateModpack.Text = "未选择（服务端整合包压缩包，将解压并自动识别核心）"
         BtnCreateOk.IsEnabled = True
         LogMsl("已创建实例：" & Name & "（" & Core & "）")
-        Hint("实例创建成功！可在「配置」页完善开服设置。", HintType.Green)
-        BtnTabList.Checked = True
+        Hint("实例创建成功！请选择终端模式以继续。", HintType.Green)
+        '进入终端模式选择页（完成后自动进入服务器管理）
+        LastCreated = Inst
+        DlHide()
+        BtnTabTerm.Checked = True
     End Sub
 
     '===============================
-    '  服务器配置
+    '  终端模式选择（创建完成后）
     '===============================
 
-    Private Sub SetConfigTarget()
-        If SelectedInst Is Nothing Then
-            LabCfgTarget.Text = "（未选择实例）"
-            Return
+    Private Sub BtnTermBack_Click() Handles BtnTermBack.Click
+        If LastCreated IsNot Nothing Then
+            '回退：删除刚创建的实例，返回新建页重新填写
+            Instances.Remove(LastCreated)
+            SaveInstances()
+            RefreshInstanceList()
+            LastCreated = Nothing
         End If
-        LabCfgTarget.Text = "（当前：" & SelectedInst.Name & "）"
-        TxtCfgJava.Text = SelectedInst.Java
-        TxtCfgArgs.Text = SelectedInst.Args
-        SelectComboByText(ComboCfgMemory, SelectedInst.Memory)
+        BtnTabCreate.Checked = True
+    End Sub
+
+    Private Sub BtnTermDone_Click() Handles BtnTermDone.Click
+        If LastCreated IsNot Nothing Then
+            LastCreated.Conpty = RdoTermConpty.Checked
+            SaveInstances()
+            LogMsl("终端模式已保存：" & LastCreated.Name & " → " & If(RdoTermConpty.Checked, "伪终端（ConPTY，测试中）", "传统模式"))
+            Dim Inst = LastCreated
+            LastCreated = Nothing
+            SrvOpen(Inst)
+        Else
+            Hint("没有待设置的实例。", HintType.Blue)
+        End If
+    End Sub
+
+    '===============================
+    '  服务器管理（MyServer 风格）
+    '===============================
+
+    ''' <summary>打开某实例的服务器管理界面。</summary>
+    Private Sub SrvOpen(Inst As MslInstance)
+        SelectedInst = Inst
+        LastCreated = Nothing
+        LabSrvTitle.Text = Inst.Name & " — 服务器管理"
+        TxtSetName.Text = Inst.Name
+        LabSetDir.Text = InstDir(Inst)
+        TxtSetCore.Text = Inst.CorePath
+        'Java 选项：已有可用 Java → 手动选择；否则默认在线下载
+        If Inst.Java <> "" AndAlso Inst.Java.ToLower() <> "java" AndAlso File.Exists(Inst.Java) Then
+            TxtCfgJava.Text = Inst.Java
+            SetJavaOpt(JavaOpt.Manual)
+        Else
+            SetJavaOpt(JavaOpt.Download)
+        End If
+        SelectComboByText(ComboCfgMemory, Inst.Memory)
+        TxtCfgArgs.Text = Inst.Args
         LoadProps()
         LoadLists()
+        RefreshDash()
+        RefreshMods()
+        RefreshPlayers()
+        BtnTabSrv.Checked = True
     End Sub
+
+    'Java 选项（手动管理互斥：各选项不在同一父容器中）
+    Private Enum JavaOpt
+        Manual = 0
+        Download = 1
+        Local = 2
+        [Env] = 3
+    End Enum
+
+    Private _JavaOptLock As Boolean = False
+
+    Private Sub SetJavaOpt(Opt As JavaOpt)
+        _JavaOptLock = True
+        OptJavaManual.Checked = (Opt = JavaOpt.Manual)
+        OptJavaDownload.Checked = (Opt = JavaOpt.Download)
+        OptJavaLocal.Checked = (Opt = JavaOpt.Local)
+        OptJavaEnv.Checked = (Opt = JavaOpt.Env)
+        UpdateJavaOptUI()
+        _JavaOptLock = False
+    End Sub
+
+    Private Sub UpdateJavaOptUI()
+        Dim Man = OptJavaManual.Checked, Lc = OptJavaLocal.Checked
+        TxtCfgJava.Visibility = If(Man OrElse Lc, Visibility.Visible, Visibility.Collapsed)
+        BtnCfgJava.Visibility = If(Man, Visibility.Visible, Visibility.Collapsed)
+        TxtCfgJavaSearch.Visibility = If(Lc, Visibility.Visible, Visibility.Collapsed)
+        BtnSetJavaSearch.Visibility = If(Lc, Visibility.Visible, Visibility.Collapsed)
+        ComboSetJavaVer.Visibility = If(OptJavaDownload.Checked, Visibility.Visible, Visibility.Collapsed)
+        BtnSetJavaDownload.Visibility = If(OptJavaDownload.Checked, Visibility.Visible, Visibility.Collapsed)
+    End Sub
+
+    Private Sub OptJava_Change(sender As Object, raiseByMouse As Boolean) Handles OptJavaManual.Check, OptJavaDownload.Check, OptJavaLocal.Check, OptJavaEnv.Check
+        If _JavaOptLock Then Return
+        Dim Opt As JavaOpt
+        If sender Is OptJavaManual Then
+            Opt = JavaOpt.Manual
+        ElseIf sender Is OptJavaDownload Then
+            Opt = JavaOpt.Download
+        ElseIf sender Is OptJavaLocal Then
+            Opt = JavaOpt.Local
+        Else
+            Opt = JavaOpt.Env
+        End If
+        SetJavaOpt(Opt)
+    End Sub
+
+    ''' <summary>根据当前选择的 Java 选项解析实际 Java 路径。</summary>
+    Private Function JavaFromOpt() As String
+        If OptJavaManual.Checked Then Return TxtCfgJava.Text.Trim()
+        If OptJavaDownload.Checked Then
+            '在线下载的 Java：取 GloriaTools\MSL\Java 下已解压的最新版本
+            Dim J = FindJavaInMslDir()
+            Return If(J IsNot Nothing, J, "")
+        End If
+        If OptJavaLocal.Checked Then Return TxtCfgJavaSearch.Text.Trim()
+        Return "java" '使用环境变量
+    End Function
+
+    Private Function FindJavaInMslDir() As String
+        Try
+            Dim Root = PathMsl & "Java\"
+            If Not Directory.Exists(Root) Then Return Nothing
+            Dim Best As String = Nothing, BestSize As Long = -1
+            For Each F In Directory.EnumerateFiles(Root, "java.exe", SearchOption.AllDirectories)
+                Dim Size As Long = 0
+                Try : Size = New FileInfo(F).Length : Catch : End Try
+                If Size > BestSize Then Best = F : BestSize = Size
+            Next
+            Return Best
+        Catch
+            Return Nothing
+        End Try
+    End Function
 
     Private Sub BtnCfgJava_Click() Handles BtnCfgJava.Click
         Dim Dlg = PickJava()
@@ -686,7 +895,8 @@ Public Class PageMslMain
             TxtPropsRaw.Text = File.ReadAllText(F, Encoding.UTF8)
             ParsePropsToFields(TxtPropsRaw.Text)
         Else
-            Hint("该实例还没有 server.properties（首次启动后生成），保存将创建新文件。", HintType.Blue)
+            TxtPropsRaw.Text = ""
+            ParsePropsToFields("")
         End If
     End Sub
 
@@ -925,8 +1135,10 @@ Public Class PageMslMain
                 '传统 jar 核心
                 Dim Args As String = ""
                 If Inst.Memory <> "自动" Then Args &= "-Xmx" & MemNum(Inst.Memory) & "G "
+                If ChkUtf8.Checked Then Args &= "-Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 "
                 If Inst.Args <> "" Then Args &= Inst.Args & " "
-                Args &= "-jar """ & Inst.CorePath & """ nogui"
+                'ConPTY（伪终端）模式下不附加 nogui，让部分服务端输出更接近真实终端
+                Args &= "-jar """ & Inst.CorePath & """" & If(Inst.Conpty, "", " nogui")
                 Info = New ProcessStartInfo With {
                     .FileName = Java,
                     .Arguments = Args,
@@ -940,13 +1152,19 @@ Public Class PageMslMain
                     .StandardErrorEncoding = Encoding.UTF8
                 }
             End If
+            '自动清屏
+            If ChkAutoClear.Checked Then
+                TxtMslConsole.Clear()
+                SyncLock ConsLock : ConsBuf.Clear() : End SyncLock
+            End If
+            _ForceKilled = False
             ProcMsl = New Process With {.StartInfo = Info, .EnableRaisingEvents = True}
-            AddHandler ProcMsl.OutputDataReceived, Sub(s, e) If e.Data IsNot Nothing Then ConsMsl(e.Data)
-            AddHandler ProcMsl.ErrorDataReceived, Sub(s, e) If e.Data IsNot Nothing Then ConsMsl(e.Data)
+            AddHandler ProcMsl.OutputDataReceived, Sub(s, e) If e.Data IsNot Nothing Then OnSrvLine(e.Data)
+            AddHandler ProcMsl.ErrorDataReceived, Sub(s, e) If e.Data IsNot Nothing Then OnSrvLine(e.Data)
             AddHandler ProcMsl.Exited, Sub(s, e)
                                            SwMslIn = Nothing
-                                           RunInUi(Sub() ConsMsl("[实例 " & RunningInst.Name & " 已退出]"))
-                                           RunInUi(AddressOf RefreshMslState)
+                                           RunInUi(Sub() ConsMsl("[实例 " & If(RunningInst IsNot Nothing, RunningInst.Name, "?") & " 已退出]"))
+                                           RunInUi(AddressOf OnSrvExitedUi)
                                        End Sub
             ProcMsl.Start()
             SwMslIn = ProcMsl.StandardInput
@@ -955,8 +1173,9 @@ Public Class PageMslMain
             RunningInst = Inst
             LogMsl("已启动实例：" & Inst.Name)
             LogMsl("启动命令：" & Info.FileName & " " & Info.Arguments)
+            If Inst.Conpty Then LogMsl("伪终端（ConPTY，测试中）模式已启用。")
             ConsMsl("[GloriaCloud] 实例 " & Inst.Name & " 已启动，可在下方输入指令。")
-            Hint("实例已启动！切换到「控制台」查看输出。", HintType.Green)
+            Hint("实例已启动！可在「仪表盘」查看状态、「控制台」查看输出。", HintType.Green)
         Catch ex As Exception
             ProcMsl = Nothing
             RunningInst = Nothing
@@ -970,10 +1189,11 @@ Public Class PageMslMain
         If Not IsRunning() Then
             Hint("服务器未在运行。", HintType.Blue) : Return
         End If
+        _ForceKilled = True
         Try
             If Force Then
                 'run.bat 方式启动时需结束整棵进程树（cmd + java）
-                If InstCoreIsBat() Then
+                If InstCoreIsBat() OrElse ChkKillTree.Checked Then
                     Process.Start(New ProcessStartInfo With {.FileName = "taskkill", .Arguments = "/F /T /PID " & ProcMsl.Id, .CreateNoWindow = True, .UseShellExecute = False})
                 Else
                     ProcMsl.Kill()
@@ -986,12 +1206,162 @@ Public Class PageMslMain
                     ConsMsl("[指令] stop（已发送关服指令，等待服务器安全退出……）")
                     LogMsl("已发送关服指令。")
                     Hint("已发送关服指令，存档将自动保存。", HintType.Blue)
+                    '勾选「强制关服时结束进程树」时：10 秒后仍未退出则强制结束
+                    If ChkKillTree.Checked Then
+                        Dim P = ProcMsl
+                        RunInNewThread(Sub()
+                                           Try
+                                               System.Threading.Thread.Sleep(10000)
+                                               If Not P.HasExited Then
+                                                   Process.Start(New ProcessStartInfo With {.FileName = "taskkill", .Arguments = "/F /T /PID " & P.Id, .CreateNoWindow = True, .UseShellExecute = False})
+                                                   ConsMsl("[关服超时，已强制结束进程树]")
+                                               End If
+                                           Catch
+                                           End Try
+                                       End Sub)
+                    End If
                 Else
                     ProcMsl.Kill()
                 End If
             End If
         Catch ex As Exception
             LogMsl("停止失败：" & ex.Message)
+        End Try
+    End Sub
+
+    '===============================
+    '  服务器输出 / 玩家 / 崩溃检测 / 自动重启
+    '===============================
+
+    ''' <summary>服务器输出行处理：屏蔽堆栈、记录玩家、写入控制台。</summary>
+    Private Sub OnSrvLine(Line As String)
+        Try
+            If ChkHideStack.Checked AndAlso Line.TrimStart().StartsWith("at ") Then Return
+            If Not ChkLogOut.Checked Then
+                '关闭日志输出时仅写运行日志，不写控制台
+                LogMsl(Line)
+                Return
+            End If
+        Catch
+        End Try
+        DetectPlayer(Line)
+        ConsMsl(Line)
+    End Sub
+
+    ''' <summary>服务器进程退出后的 UI 收尾（自动重启 / 崩溃检测）。</summary>
+    Private Sub OnSrvExitedUi()
+        RefreshMslState()
+        If ChkAutoRestart.Checked AndAlso Not _ForceKilled AndAlso RunningInst IsNot Nothing Then
+            Dim Inst = RunningInst
+            ConsMsl("[GloriaCloud] 关服自动重启已启用，5 秒后自动重启……")
+            RunInNewThread(Sub()
+                               Try
+                                   System.Threading.Thread.Sleep(5000)
+                               Catch
+                               End Try
+                               RunInUi(Sub() If Not IsRunning() Then StartInstance(Inst))
+                           End Sub)
+        ElseIf Not _ForceKilled Then
+            CrashCheck(False)
+        End If
+        _ForceKilled = False
+    End Sub
+
+    ''' <summary>已加入的玩家列表（由控制台输出解析）。</summary>
+    Private Players As New List(Of String)
+
+    Private Sub DetectPlayer(Line As String)
+        Try
+            If Not ChkDashPlayers.Checked Then Return
+        Catch
+            Return
+        End Try
+        Try
+            Dim Ix = Line.IndexOf("joined the game", StringComparison.OrdinalIgnoreCase)
+            Dim Iy = Line.IndexOf("left the game", StringComparison.OrdinalIgnoreCase)
+            If Ix > 0 Then
+                Dim Name = NameFromLog(Line.Substring(0, Ix))
+                If Name <> "" AndAlso Not Players.Contains(Name) Then
+                    Players.Add(Name)
+                    RunInUi(AddressOf RefreshPlayers)
+                End If
+            ElseIf Iy > 0 Then
+                Dim Name = NameFromLog(Line.Substring(0, Iy))
+                If Name <> "" AndAlso Players.Contains(Name) Then
+                    Players.Remove(Name)
+                    RunInUi(AddressOf RefreshPlayers)
+                End If
+            End If
+        Catch
+        End Try
+    End Sub
+
+    '从 "…]: Steve" / "…]: Steve" 前缀中提取玩家名
+    Private Function NameFromLog(Prefix As String) As String
+        Prefix = Prefix.Trim()
+        Dim Sep As Integer = Math.Max(Prefix.LastIndexOf(":"c), Prefix.LastIndexOf("]"c))
+        If Sep >= 0 AndAlso Sep < Prefix.Length - 1 Then Return Prefix.Substring(Sep + 1).Trim()
+        Return Prefix
+    End Function
+
+    Private Sub RefreshPlayers()
+        If PanDashPlayers Is Nothing Then Return
+        PanDashPlayers.Children.Clear()
+        PanDashPlayerEmpty.Visibility = If(Players.Count = 0 OrElse Not ChkDashPlayers.Checked, Visibility.Visible, Visibility.Collapsed)
+        For Each P As String In Players
+            Dim B As New Border With {
+                .Background = TryCast(FindResource("ColorBrushBg1"), Brush),
+                .CornerRadius = New CornerRadius(6),
+                .Padding = New Thickness(10, 5, 10, 5),
+                .Margin = New Thickness(0, 0, 0, 5),
+                .HorizontalAlignment = HorizontalAlignment.Left
+            }
+            B.Child = New TextBlock With {.Text = "👤 " & P & " 在线", .FontSize = 12.5}
+            PanDashPlayers.Children.Add(B)
+        Next
+    End Sub
+
+    ''' <summary>崩溃检测：Notify=True 时弹窗显示结果，否则仅提示。</summary>
+    Private Sub CrashCheck(Notify As Boolean)
+        Try
+            Dim Txt As String = ""
+            Try : Txt = TxtMslLog.Text & vbCrLf & TxtMslConsole.Text : Catch : End Try
+            Dim HasCrash = Txt.Contains("Exception") OrElse Txt.ToLower().Contains("crash-report") OrElse Txt.Contains("Failed to load")
+            Dim Dir As String = If(SelectedInst IsNot Nothing, InstDir(SelectedInst), PathServers)
+            Dim Rep As String = Nothing
+            Dim RepDir = Dir & "crash-reports\"
+            If Directory.Exists(RepDir) Then
+                Rep = Directory.GetFiles(RepDir, "*.txt").OrderByDescending(Function(f) File.GetLastWriteTime(f)).FirstOrDefault()
+            End If
+            If Notify Then
+                If Rep IsNot Nothing Then
+                    MyMsgBox("检测到服务器崩溃报告：" & vbCrLf & Rep & vbCrLf & vbCrLf & "可以把报告发给开发者或在社区寻求帮助。", "崩溃检测", "确定")
+                ElseIf HasCrash Then
+                    MyMsgBox("日志中检测到异常输出（Exception），但未找到 crash-reports 报告文件。请查看控制台日志定位问题。", "崩溃检测", "确定")
+                Else
+                    MyMsgBox("未检测到崩溃，服务器日志一切正常。", "崩溃检测", "确定")
+                End If
+            ElseIf Rep IsNot Nothing Then
+                Hint("检测到崩溃报告：" & Rep, HintType.Red)
+            End If
+        Catch
+        End Try
+    End Sub
+
+    '仪表盘：系统占用刷新（每 2 秒）
+    Private Sub SysTick(sender As Object, e As EventArgs)
+        If LabDashMem Is Nothing OrElse ChkDashSys Is Nothing Then Return
+        If Not ChkDashSys.Checked OrElse Not IsRunning() Then
+            LabDashMem.Text = "—"
+            Return
+        End If
+        Try
+            ProcMsl.Refresh()
+            Dim Mem = (ProcMsl.WorkingSet64 / 1048576).ToString("F0")
+            Dim Cpu = (ProcMsl.TotalProcessorTime.TotalSeconds).ToString("F0")
+            LabDashMem.Text = Mem & " MB 内存 · CPU 累计 " & Cpu & " s"
+        Catch
+            LabDashMem.Text = "—"
         End Try
     End Sub
 
@@ -1071,11 +1441,99 @@ Public Class PageMslMain
             LabMslConsCore.Text = If(RunningInst IsNot Nothing, RunningInst.Name & "：" & RunningInst.CorePath, "")
             LabHomeState.Text = "运行中"
             LabHomeRunning.Text = If(RunningInst IsNot Nothing, RunningInst.Name, "")
+            LabSrvState.Text = "● 运行中"
         Else
-            LabMslConsState.Text = "● 已停止"
+            LabMslConsState.Text = "● 已关闭"
             LabMslConsState.Foreground = New SolidColorBrush(Color.FromRgb(150, 150, 150))
             LabHomeState.Text = "未运行"
             LabHomeRunning.Text = "—"
+            LabSrvState.Text = "● 已关闭"
+        End If
+        LabSrvState.Foreground = New SolidColorBrush(Color.FromRgb(47, 163, 92))
+        RefreshDash()
+    End Sub
+
+    '===============================
+    '  仪表盘
+    '===============================
+
+    ''' <summary>读取实例 server.properties 为键值字典。</summary>
+    Private Function ReadPropsDict() As Dictionary(Of String, String)
+        Dim Map As New Dictionary(Of String, String)
+        Try
+            If SelectedInst IsNot Nothing Then
+                Dim F As String = InstDir(SelectedInst) & "server.properties"
+                If File.Exists(F) Then
+                    For Each L In File.ReadAllLines(F)
+                        Dim T = L.Trim()
+                        If T.StartsWith("#") OrElse Not T.Contains("=") Then Continue For
+                        Map(T.Substring(0, T.IndexOf("=")).Trim()) = T.Substring(T.IndexOf("=") + 1)
+                    Next
+                End If
+            End If
+        Catch
+        End Try
+        Return Map
+    End Function
+
+    Private Sub RefreshDash()
+        If LabDashState Is Nothing Then Return
+        Dim Running As Boolean = IsRunning()
+        LabDashState.Text = If(Running, "运行中", "已关闭")
+        LabDashState.Foreground = New SolidColorBrush(Color.FromRgb(47, 163, 92))
+        Dim P = ReadPropsDict()
+        Dim GetV = Function(K As String, D As String) If(P.ContainsKey(K), P(K), D)
+        LabDashOnline.Text = If(GetV("online-mode", "true") = "true", "已开启", "已关闭")
+        LabDashGamemode.Text = GetV("gamemode", "survival")
+        LabDashDifficulty.Text = GetV("difficulty", "easy")
+        Dim Port = GetV("server-port", "25565")
+        LabDashPort.Text = Port
+        LabDashLocal.Text = "127.0.0.1:" & Port
+        If Not IsMapRunning() Then LabDashRemote.Text = "点击获取"
+    End Sub
+
+    Private Sub BtnDashStart_Click() Handles BtnDashStart.Click
+        If IsRunning() Then
+            Hint("服务器已在运行中！", HintType.Blue) : Return
+        End If
+        If SelectedInst Is Nothing Then
+            Hint("请先在「服务器」页选择一个实例（点击管理）。", HintType.Red) : Return
+        End If
+        StartInstance(SelectedInst)
+    End Sub
+
+    Private Sub BtnMslStart_Click() Handles BtnMslStart.Click
+        If IsRunning() Then
+            Hint("服务器已在运行中！", HintType.Blue) : Return
+        End If
+        Dim Inst = If(RunningInst, SelectedInst)
+        If Inst Is Nothing Then
+            Hint("请先在「服务器」页选择一个实例（点击管理）。", HintType.Red) : Return
+        End If
+        StartInstance(Inst)
+    End Sub
+
+    Private Sub BtnDashCrash_Click() Handles BtnDashCrash.Click
+        CrashCheck(True)
+    End Sub
+
+    Private Sub BtnDashFolder_Click() Handles BtnDashFolder.Click
+        Try
+            Dim Dir As String = If(SelectedInst IsNot Nothing, InstDir(SelectedInst), PathServers)
+            Directory.CreateDirectory(Dir)
+            Process.Start(New ProcessStartInfo(Dir) With {.UseShellExecute = True})
+        Catch ex As Exception
+            Hint("打开目录失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    Private Sub BtnDashRemote_Click() Handles BtnDashRemote.Click
+        If IsMapRunning() Then
+            LabDashRemote.Text = LabTunnelDesc.Text
+            Hint("已获取远程进入地址（来自当前 frpc 映射）。", HintType.Green)
+        Else
+            LabDashRemote.Text = "点击获取"
+            Hint("尚未开启 frpc 映射。请到「映射」页添加隧道，或使用「联机」页的点对点联机。", HintType.Blue)
         End If
     End Sub
 
@@ -1225,9 +1683,53 @@ Public Class PageMslMain
             If File.Exists(PathSettings) Then
                 Dim O = JObject.Parse(File.ReadAllText(PathSettings))
                 TxtSetJava.Text = If(O("Java") Is Nothing, "", O("Java").ToString())
+                Dim F = TryCast(O("Func"), JObject)
+                If F IsNot Nothing Then
+                    '默认值：终端类开关启用，控制类开关禁用（与 MSL 一致）
+                    ChkDashSys.Checked = If(F("DashSys") Is Nothing, True, CBool(F("DashSys")))
+                    ChkDashPlayers.Checked = If(F("DashPlayers") Is Nothing, True, CBool(F("DashPlayers")))
+                    ChkConpty.Checked = If(F("Conpty") Is Nothing, False, CBool(F("Conpty")))
+                    ChkAutoRestart.Checked = If(F("AutoRestart") Is Nothing, False, CBool(F("AutoRestart")))
+                    ChkUtf8.Checked = If(F("Utf8") Is Nothing, False, CBool(F("Utf8")))
+                    ChkKillTree.Checked = If(F("KillTree") Is Nothing, False, CBool(F("KillTree")))
+                    ChkLogOut.Checked = If(F("LogOut") Is Nothing, True, CBool(F("LogOut")))
+                    ChkAutoClear.Checked = If(F("AutoClear") Is Nothing, True, CBool(F("AutoClear")))
+                    ChkHideStack.Checked = If(F("HideStack") Is Nothing, True, CBool(F("HideStack")))
+                    ChkFmtHead.Checked = If(F("FmtHead") Is Nothing, True, CBool(F("FmtHead")))
+                End If
             End If
         Catch
         End Try
+        UpdateJavaOptUI()
+    End Sub
+
+    ''' <summary>保存「更多功能」的开关状态。</summary>
+    Private Sub SaveFunc()
+        Try
+            Dim O As New JObject
+            If File.Exists(PathSettings) Then
+                Try : O = JObject.Parse(File.ReadAllText(PathSettings)) : Catch : O = New JObject : End Try
+            End If
+            O("Java") = TxtSetJava.Text.Trim()
+            O("Func") = New JObject From {
+                {"DashSys", ChkDashSys.Checked}, {"DashPlayers", ChkDashPlayers.Checked},
+                {"Conpty", ChkConpty.Checked}, {"AutoRestart", ChkAutoRestart.Checked},
+                {"Utf8", ChkUtf8.Checked}, {"KillTree", ChkKillTree.Checked},
+                {"LogOut", ChkLogOut.Checked}, {"AutoClear", ChkAutoClear.Checked},
+                {"HideStack", ChkHideStack.Checked}, {"FmtHead", ChkFmtHead.Checked}
+            }
+            Directory.CreateDirectory(PathMsl)
+            File.WriteAllText(PathSettings, O.ToString(Formatting.Indented), Encoding.UTF8)
+        Catch
+        End Try
+    End Sub
+
+    Private Sub Func_Change(sender As Object, user As Boolean) Handles ChkDashSys.Change, ChkDashPlayers.Change, ChkConpty.Change, ChkAutoRestart.Change,
+                                                                        ChkUtf8.Change, ChkKillTree.Change, ChkLogOut.Change, ChkAutoClear.Change,
+                                                                        ChkHideStack.Change, ChkFmtHead.Change
+        If Not _InitDone Then Return
+        SaveFunc()
+        If sender Is ChkDashPlayers Then RefreshPlayers()
     End Sub
 
     Private Sub BtnSetJava_Click() Handles BtnSetJava.Click
@@ -1273,13 +1775,502 @@ Public Class PageMslMain
         BtnTabCreate.Checked = True
     End Sub
 
-    '下载资源 / 下载服务器（与 MSL 一致的提示弹窗）
+    '下载资源 / 下载服务器（提示真实的存放目录）
     Private Sub BtnListDlRes_Click() Handles BtnListDlRes.Click
-        MyMsgBox("这是单独的模组/组件/整合包下载界面。" & vbCrLf & "下载的文件均在 MSL\Downloads 文件夹内。", "提示", "确定")
+        Dim Dl = PathMsl & "Downloads\"
+        Try : Directory.CreateDirectory(Dl) : Catch : End Try
+        MyMsgBox("这是单独的模组/组件/整合包下载界面。" & vbCrLf & "下载的文件均存放在：" & vbCrLf & Dl, "提示", "确定")
     End Sub
 
     Private Sub BtnListDlSrv_Click() Handles BtnListDlSrv.Click
-        MyMsgBox("这是单独的服务器下载界面。" & vbCrLf & "下载的服务器端均在 MSL\Downloads 文件夹内。", "提示", "确定")
+        Dim Dl = PathMsl & "Downloads\"
+        Try : Directory.CreateDirectory(Dl) : Catch : End Try
+        MyMsgBox("这是单独的服务器下载界面。" & vbCrLf & "下载的服务器端均存放在：" & vbCrLf & Dl, "提示", "确定")
+    End Sub
+
+    '===============================
+    '  实例设置页（服务器管理 → 实例设置）
+    '===============================
+
+    Private Sub BtnSetDirBrowse_Click() Handles BtnSetDirBrowse.Click
+        Try
+            If SelectedInst Is Nothing Then
+                Hint("请先选择实例。", HintType.Red) : Return
+            End If
+            Directory.CreateDirectory(InstDir(SelectedInst))
+            Process.Start(New ProcessStartInfo(InstDir(SelectedInst)) With {.UseShellExecute = True})
+        Catch ex As Exception
+            Hint("打开目录失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    Private Sub BtnSetJavaSearch_Click() Handles BtnSetJavaSearch.Click
+        Dim J = FindJavaAuto()
+        If J = "" Then
+            Hint("未在本机找到 Java，请安装 Java 或使用「开服器在线下载」。", HintType.Red)
+        Else
+            TxtCfgJavaSearch.Text = J
+            Hint("已找到 Java：" & J, HintType.Green)
+        End If
+    End Sub
+
+    '在线下载 Java 运行时（Eclipse Adoptium）
+    Private Sub BtnSetJavaDownload_Click() Handles BtnSetJavaDownload.Click
+        Dim Vm = ComboText(ComboSetJavaVer)
+        If Vm = "" Then
+            Hint("请先选择 Java 版本。", HintType.Red) : Return
+        End If
+        BtnSetJavaDownload.IsEnabled = False
+        RunInNewThread(Sub()
+                           Try
+                               DlShow("正在获取 Java " & Vm & " 运行时下载地址……", Nothing)
+                               Dim Url As String = $"https://api.adoptium.net/v3/binary/latest/{Vm}/ga/windows/x64/jre/hotspot/normal/eclipse"
+                               Dim Dir As String = PathMsl & "Java\" & Vm & "\"
+                               Dim ZipPath As String = Dir & "jre.zip"
+                               Directory.CreateDirectory(Dir)
+                               DownloadFile(Url, ZipPath, "正在下载 Java " & Vm & " 运行时（Adoptium）")
+                               DlShow("正在解压 Java " & Vm & " ……", Nothing)
+                               ExtractZip(ZipPath, Dir)
+                               File.Delete(ZipPath)
+                               Dim J = FindFile(Dir, "java.exe")
+                               If J Is Nothing Then Throw New Exception("解压后未找到 java.exe")
+                               RunInUi(Sub()
+                                           TxtCfgJava.Text = J
+                                           SetJavaOpt(JavaOpt.Manual)
+                                           Hint("Java " & Vm & " 下载完成：" & J, HintType.Green)
+                                           LogMsl("Java " & Vm & " 已下载：" & J)
+                                           BtnSetJavaDownload.IsEnabled = True
+                                           DlHide()
+                                       End Sub)
+                           Catch ex As Exception
+                               RunInUi(Sub()
+                                           Hint("Java 下载失败：" & ex.Message, HintType.Red)
+                                           LogMsl("Java 下载失败：" & ex.Message)
+                                           BtnSetJavaDownload.IsEnabled = True
+                                           DlHide()
+                                       End Sub)
+                           End Try
+                       End Sub)
+    End Sub
+
+    Private Sub BtnSetCoreBrowse_Click() Handles BtnSetCoreBrowse.Click
+        Dim Dlg As New OpenFileDialog With {
+            .Title = "选择服务端核心文件",
+            .Filter = "服务端核心 (*.jar;*.bat;*.exe)|*.jar;*.bat;*.exe|所有文件 (*.*)|*.*"
+        }
+        If Dlg.ShowDialog() <> True Then Return
+        TxtSetCore.Text = Dlg.FileName
+    End Sub
+
+    '为当前实例下载服务端核心（使用新建页选择的类型与版本）
+    Private Sub BtnSetCoreDl_Click() Handles BtnSetCoreDl.Click
+        If SelectedInst Is Nothing Then
+            Hint("请先选择实例。", HintType.Red) : Return
+        End If
+        Dim T = ComboText(ComboCreateType), Ver = ComboText(ComboCreateVersion)
+        If T = "" Then
+            Hint("请先到「新建」页选择服务器类型与版本。", HintType.Red) : Return
+        End If
+        BtnSetCoreDl.IsEnabled = False
+        Dim Inst = SelectedInst
+        RunInNewThread(Sub()
+                           Try
+                               Dim Core As String = DownloadCore(T, Ver, InstDir(Inst))
+                               RunInUi(Sub()
+                                           TxtSetCore.Text = Core
+                                           Hint("服务端核心下载完成：" & Core, HintType.Green)
+                                           LogMsl("核心下载完成：" & Core)
+                                           BtnSetCoreDl.IsEnabled = True
+                                           DlHide()
+                                       End Sub)
+                           Catch ex As Exception
+                               RunInUi(Sub()
+                                           Hint("核心下载失败：" & ex.Message, HintType.Red)
+                                           BtnSetCoreDl.IsEnabled = True
+                                           DlHide()
+                                       End Sub)
+                           End Try
+                       End Sub)
+    End Sub
+
+    Private Sub BtnSetSaveInst_Click() Handles BtnSetSaveInst.Click
+        If SelectedInst Is Nothing Then
+            Hint("请先选择实例。", HintType.Red) : Return
+        End If
+        Dim NewName As String = TxtSetName.Text.Trim()
+        If NewName = "" Then
+            Hint("实例名称不能为空！", HintType.Red) : Return
+        End If
+        If NewName <> SelectedInst.Name AndAlso Instances.Any(Function(x) x.Name = NewName) Then
+            Hint("已存在同名实例，请换一个名称。", HintType.Red) : Return
+        End If
+        SelectedInst.Name = NewName
+        SelectedInst.Java = JavaFromOpt()
+        SelectedInst.Memory = ComboText(ComboCfgMemory)
+        SelectedInst.Args = TxtCfgArgs.Text.Trim()
+        Dim Core = TxtSetCore.Text.Trim()
+        If Core <> "" AndAlso File.Exists(Core) Then SelectedInst.CorePath = Core
+        SaveInstances()
+        RefreshInstanceList()
+        LabSrvTitle.Text = SelectedInst.Name & " — 服务器管理"
+        LogMsl("实例设置已保存：" & SelectedInst.Name)
+        Hint("实例设置已保存！", HintType.Green)
+    End Sub
+
+    '===============================
+    '  插件·模组管理
+    '===============================
+
+    Private Sub BtnModRefresh_Click() Handles BtnModRefresh.Click
+        RefreshMods()
+    End Sub
+
+    Private Sub BtnModOpen_Click() Handles BtnModOpen.Click
+        Try
+            If SelectedInst Is Nothing Then
+                Hint("请先选择实例。", HintType.Red) : Return
+            End If
+            Dim Target As String = InstDir(SelectedInst)
+            If Directory.Exists(Target & "plugins\") Then
+                Target = Target & "plugins\"
+            ElseIf Directory.Exists(Target & "mods\") Then
+                Target = Target & "mods\"
+            End If
+            Process.Start(New ProcessStartInfo(Target) With {.UseShellExecute = True})
+        Catch ex As Exception
+            Hint("打开目录失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    ''' <summary>刷新插件/模组列表（plugins / mods 及其 _disabled 目录）。</summary>
+    Private Sub RefreshMods()
+        If PanModList Is Nothing Then Return
+        PanModList.Children.Clear()
+        Dim Count As Integer = 0
+        If SelectedInst IsNot Nothing AndAlso SelectedInst.CorePath.ToLower().EndsWith(".jar") Then
+            For Each Sub_ As String In {"plugins", "mods"}
+                Dim EnabledDir = InstDir(SelectedInst) & Sub_ & "\"
+                Dim DisabledDir = InstDir(SelectedInst) & Sub_ & "_disabled\"
+                Count += AddModCards(EnabledDir, Sub_, False, DisabledDir)
+                Count += AddModCards(DisabledDir, Sub_, True, EnabledDir)
+            Next
+        End If
+        PanModEmpty.Visibility = If(Count = 0, Visibility.Visible, Visibility.Collapsed)
+    End Sub
+
+    Private Function AddModCards(Dir As String, Kind As String, Disabled As Boolean, OtherDir As String) As Integer
+        If Not Directory.Exists(Dir) Then Return 0
+        Dim N As Integer = 0
+        For Each F In Directory.GetFiles(Dir, "*.jar")
+            N += 1
+            Dim FilePath = F, SrcDir = Dir
+            Dim Info As New FileInfo(F)
+            Dim Card As New Border With {
+                .Background = TryCast(FindResource("ColorBrushBg1"), Brush),
+                .CornerRadius = New CornerRadius(6),
+                .Margin = New Thickness(0, 0, 0, 8),
+                .Padding = New Thickness(12, 9, 12, 9)
+            }
+            Dim G As New Grid()
+            G.ColumnDefinitions.Add(New ColumnDefinition With {.Width = New GridLength(1, GridUnitType.Star)})
+            G.ColumnDefinitions.Add(New ColumnDefinition With {.Width = GridLength.Auto})
+            Dim SpL As New StackPanel With {.VerticalAlignment = VerticalAlignment.Center}
+            SpL.Children.Add(New TextBlock With {.Text = Path.GetFileName(F), .FontSize = 13.5, .FontWeight = FontWeights.Bold})
+            SpL.Children.Add(New TextBlock With {
+                .Text = Kind & " · " & (Info.Length / 1024).ToString("F0") & " KB" & If(Disabled, " · 已禁用", ""),
+                .FontSize = 11.5, .Foreground = TryCast(FindResource("ColorBrushGray3"), Brush), .Margin = New Thickness(0, 2, 0, 0)})
+            Grid.SetColumn(SpL, 0)
+            Dim SpR As New StackPanel With {.Orientation = Orientation.Horizontal, .VerticalAlignment = VerticalAlignment.Center}
+            Dim BToggle As New MyButton With {.Text = If(Disabled, "启用", "禁用"), .Padding = New Thickness(12, 5, 12, 5), .Margin = New Thickness(0, 0, 8, 0)}
+            AddHandler BToggle.Click, Sub()
+                                          Try
+                                              Dim DestPath = Path.Combine(OtherDir, Path.GetFileName(FilePath))
+                                              Directory.CreateDirectory(OtherDir)
+                                              If File.Exists(DestPath) Then File.Delete(DestPath)
+                                              File.Move(FilePath, DestPath)
+                                              Hint(If(Disabled, "已启用：", "已禁用：") & Path.GetFileName(FilePath), HintType.Blue)
+                                              RefreshMods()
+                                          Catch ex As Exception
+                                              Hint("操作失败：" & ex.Message, HintType.Red)
+                                          End Try
+                                      End Sub
+            Dim BDel As New MyButton With {.Text = "删除", .Padding = New Thickness(12, 5, 12, 5), .ColorType = MyButton.ColorState.Red}
+            AddHandler BDel.Click, Sub()
+                                       Try
+                                           File.Delete(FilePath)
+                                           Hint("已删除：" & Path.GetFileName(FilePath), HintType.Blue)
+                                           RefreshMods()
+                                       Catch ex As Exception
+                                           Hint("删除失败：" & ex.Message, HintType.Red)
+                                       End Try
+                                   End Sub
+            SpR.Children.Add(BToggle) : SpR.Children.Add(BDel)
+            Grid.SetColumn(SpR, 1)
+            G.Children.Add(SpL) : G.Children.Add(SpR)
+            Card.Child = G
+            PanModList.Children.Add(Card)
+        Next
+        Return N
+    End Function
+
+    '===============================
+    '  定时任务（Cron：秒 分 时 日 月 周）
+    '===============================
+
+    Private Tasks As New List(Of MslTask)
+    Private SelectedTask As MslTask = Nothing
+
+    Private Sub LoadTasks()
+        Try
+            Tasks.Clear()
+            If File.Exists(PathTasks) Then
+                Dim Arr = JArray.Parse(File.ReadAllText(PathTasks))
+                For Each O As JObject In Arr
+                    Tasks.Add(New MslTask With {
+                        .Cron = If(O("Cron") Is Nothing, "", O("Cron").ToString()),
+                        .Cmd = If(O("Cmd") Is Nothing, "", O("Cmd").ToString()),
+                        .LastRun = If(O("LastRun") Is Nothing, "", O("LastRun").ToString())
+                    })
+                Next
+            End If
+        Catch
+        End Try
+        RunInUi(AddressOf RefreshTasks)
+    End Sub
+
+    Private Sub SaveTasks()
+        Try
+            Directory.CreateDirectory(PathMsl)
+            Dim Arr As New JArray()
+            For Each T As MslTask In Tasks
+                Arr.Add(New JObject From {{"Cron", T.Cron}, {"Cmd", T.Cmd}, {"LastRun", T.LastRun}})
+            Next
+            File.WriteAllText(PathTasks, Arr.ToString(Formatting.Indented), Encoding.UTF8)
+        Catch ex As Exception
+            LogMsl("保存任务配置失败：" & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub RefreshTasks()
+        If PanTaskList Is Nothing Then Return
+        PanTaskList.Children.Clear()
+        PanTaskEmpty.Visibility = If(Tasks.Count = 0, Visibility.Visible, Visibility.Collapsed)
+        For Each T As MslTask In Tasks
+            Dim Task = T
+            Dim B As New Border With {
+                .Background = TryCast(FindResource("ColorBrushBg1"), Brush),
+                .CornerRadius = New CornerRadius(6),
+                .Padding = New Thickness(10, 7, 10, 7),
+                .Margin = New Thickness(0, 0, 0, 6),
+                .Cursor = Cursors.Hand
+            }
+            Dim Sp As New StackPanel()
+            Sp.Children.Add(New TextBlock With {.Text = "Cron：" & T.Cron, .FontSize = 12.5, .FontWeight = FontWeights.Bold})
+            Sp.Children.Add(New TextBlock With {.Text = "指令：" & If(T.Cmd = "", "（空）", T.Cmd), .FontSize = 11.5, .Foreground = TryCast(FindResource("ColorBrushGray3"), Brush)})
+            Sp.Children.Add(New TextBlock With {.Text = "上次执行：" & If(T.LastRun = "", "无", T.LastRun), .FontSize = 11.5, .Foreground = TryCast(FindResource("ColorBrushGray3"), Brush)})
+            AddHandler B.MouseLeftButtonUp, Sub()
+                                                SelectedTask = Task
+                                                TxtTaskCron.Text = Task.Cron
+                                                TxtTaskCmd.Text = Task.Cmd
+                                                LabTaskLast.Text = If(Task.LastRun = "", "无", Task.LastRun)
+                                                Hint("已选中任务，可直接修改后点击「添加新任务」覆盖保存。", HintType.Blue)
+                                            End Sub
+            B.Child = Sp
+            PanTaskList.Children.Add(B)
+        Next
+    End Sub
+
+    Private Sub BtnTaskAdd_Click() Handles BtnTaskAdd.Click
+        Dim Cron = TxtTaskCron.Text.Trim(), Cmd = TxtTaskCmd.Text.Trim()
+        If Cron.Split(" "c).Length <> 6 Then
+            Hint("Cron 表达式必须为 6 字段（秒 分 时 日 月 周）。", HintType.Red) : Return
+        End If
+        If SelectedTask IsNot Nothing Then
+            SelectedTask.Cron = Cron
+            SelectedTask.Cmd = Cmd
+            Hint("任务已更新。", HintType.Green)
+        Else
+            Tasks.Add(New MslTask With {.Cron = Cron, .Cmd = Cmd})
+            Hint("任务已添加。", HintType.Green)
+        End If
+        SelectedTask = Nothing
+        SaveTasks()
+        RefreshTasks()
+    End Sub
+
+    Private Sub BtnTaskDel_Click() Handles BtnTaskDel.Click
+        If SelectedTask Is Nothing Then
+            Hint("请先在列表中点选一个任务。", HintType.Blue) : Return
+        End If
+        Tasks.Remove(SelectedTask)
+        SelectedTask = Nothing
+        SaveTasks()
+        RefreshTasks()
+        Hint("任务已删除。", HintType.Green)
+    End Sub
+
+    Private Sub BtnTaskDelAll_Click() Handles BtnTaskDelAll.Click
+        Tasks.Clear()
+        SelectedTask = Nothing
+        SaveTasks()
+        RefreshTasks()
+        Hint("已删除所有任务。", HintType.Green)
+    End Sub
+
+    Private Sub BtnTaskLoad_Click() Handles BtnTaskLoad.Click
+        LoadTasks()
+        Hint("任务配置已重新加载。", HintType.Blue)
+    End Sub
+
+    Private Sub BtnTaskClear_Click() Handles BtnTaskClear.Click
+        Tasks.Clear()
+        SelectedTask = Nothing
+        Try
+            If File.Exists(PathTasks) Then File.Delete(PathTasks)
+        Catch
+        End Try
+        RefreshTasks()
+        Hint("任务配置已清除。", HintType.Green)
+    End Sub
+
+    Private Sub BtnCron_Click(sender As Object, e As RoutedEventArgs) Handles BtnCronA.Click, BtnCronB.Click, BtnCronC.Click, BtnCronD.Click,
+                                                                               BtnCronE.Click, BtnCronF.Click, BtnCronG.Click
+        Dim Map As New Dictionary(Of String, String) From {
+            {"BtnCronA", "*/10 * * * * *"}, {"BtnCronB", "0 * * * * *"}, {"BtnCronC", "0 */5 * * * *"},
+            {"BtnCronD", "0 */30 * * * *"}, {"BtnCronE", "0 0 * * * *"}, {"BtnCronF", "0 0 3 * * *"}, {"BtnCronG", "0 0 3 * * 0"}
+        }
+        Dim N = CType(sender, System.Windows.FrameworkElement).Name
+        If Map.ContainsKey(N) Then TxtTaskCron.Text = Map(N)
+    End Sub
+
+    Private Sub BtnTaskRun_Click() Handles BtnTaskRun.Click
+        If TaskTimer.IsEnabled Then
+            TaskTimer.Stop()
+            BtnTaskRun.Text = "▶ 启动定时任务"
+            Hint("定时任务已停止。", HintType.Blue)
+        Else
+            If Tasks.Count = 0 Then
+                Hint("请先添加任务！", HintType.Red) : Return
+            End If
+            TaskTimer.Start()
+            BtnTaskRun.Text = "■ 停止定时任务"
+            Hint("定时任务已启动，调度器每秒检查一次。", HintType.Green)
+            LogMsl("定时任务调度器已启动，共 " & Tasks.Count & " 个任务。")
+        End If
+    End Sub
+
+    Private Sub TaskTimerTick(sender As Object, e As EventArgs)
+        If Tasks.Count = 0 Then Return
+        Dim NowT = Date.Now
+        Dim Key = NowT.Hour * 10000 + NowT.Minute * 100 + NowT.Second
+        For Each T As MslTask In Tasks
+            If T.LastKey = Key Then Continue For
+            If CronMatch(T.Cron, NowT) Then
+                T.LastKey = Key
+                RunTask(T, NowT)
+            End If
+        Next
+    End Sub
+
+    Private Sub RunTask(T As MslTask, NowT As Date)
+        T.LastRun = NowT.ToString("yyyy-MM-dd HH:mm:ss")
+        LabTaskLast.Text = T.LastRun
+        SaveTasks()
+        LogMsl("定时任务触发：" & T.Cron & " → " & T.Cmd)
+        If T.Cmd.Trim() = ".backup" Then
+            BackupInst()
+        ElseIf IsRunning() AndAlso SwMslIn IsNot Nothing Then
+            Try
+                SwMslIn.WriteLine(T.Cmd)
+                ConsMsl("[定时任务] " & T.Cmd)
+            Catch ex As Exception
+                ConsMsl("[定时任务] 指令发送失败：" & ex.Message)
+            End Try
+        Else
+            ConsMsl("[定时任务] 服务器未运行，指令未发送：" & T.Cmd)
+        End If
+    End Sub
+
+    'Cron 字段匹配（支持 * / n a-b a,b,c */n）
+    Private Function CronMatch(Cron As String, T As Date) As Boolean
+        Try
+            Dim Parts = Cron.Split({" "c}, StringSplitOptions.RemoveEmptyEntries)
+            If Parts.Length <> 6 Then Return False
+            Dim Cur() As Integer = {T.Second, T.Minute, T.Hour, T.Day, T.Month, CInt(T.DayOfWeek)}
+            For i = 0 To 5
+                If Not CronFieldMatch(Parts(i), Cur(i), i) Then Return False
+            Next
+            Return True
+        Catch
+            Return False
+        End Try
+    End Function
+
+    Private Function CronFieldMatch(Field As String, V As Integer, Idx As Integer) As Boolean
+        Dim MaxV() As Integer = {59, 59, 23, 31, 12, 6}
+        For Each Tok In Field.Split(","c)
+            Dim StepN = 1
+            Dim Body = Tok
+            If Body.Contains("/") Then
+                Dim Sp = Body.Split("/"c)
+                Body = Sp(0)
+                If Not Integer.TryParse(Sp(1), StepN) Then StepN = 1
+                If StepN < 1 Then StepN = 1
+            End If
+            Dim Lo As Integer = 0, Hi As Integer = MaxV(Idx)
+            If Body = "*" Then
+                '全范围
+            ElseIf Body.Contains("-") Then
+                Dim Sp = Body.Split("-"c)
+                If Not (Integer.TryParse(Sp(0), Lo) AndAlso Integer.TryParse(Sp(1), Hi)) Then Continue For
+            ElseIf Integer.TryParse(Body, Lo) Then
+                Hi = If(StepN > 1, MaxV(Idx), Lo)
+            Else
+                Continue For
+            End If
+            If V < Lo OrElse V > Hi Then Continue For
+            If (V - Lo) Mod StepN = 0 Then Return True
+        Next
+        Return False
+    End Function
+
+    '===============================
+    '  备份（定时任务 .backup 指令）
+    '===============================
+
+    Private Sub BackupInst()
+        Dim Inst = If(RunningInst, SelectedInst)
+        If Inst Is Nothing Then
+            Hint("没有可备份的实例。", HintType.Red) : Return
+        End If
+        ConsMsl("[备份] 正在备份 " & Inst.Name & " ……")
+        RunInNewThread(Sub()
+                           Try
+                               Dim Dir = InstDir(Inst)
+                               Dim BkDir = PathMsl & "Backups\"
+                               Directory.CreateDirectory(BkDir)
+                               Dim ZipPath = BkDir & Inst.Name & "_" & Date.Now.ToString("yyyyMMdd_HHmmss") & ".zip"
+                               Using FS = File.Create(ZipPath)
+                                   Using Zip As New ZipArchive(FS, ZipArchiveMode.Create)
+                                       For Each F In Directory.EnumerateFiles(Dir, "*", SearchOption.AllDirectories)
+                                           Dim Rel = F.Substring(Dir.Length).Replace("\", "/")
+                                           If Rel.Contains("/logs/") OrElse Rel.StartsWith("logs/") Then Continue For
+                                           Dim E = Zip.CreateEntry(Rel)
+                                           Using ES = E.Open()
+                                               Using SF = File.OpenRead(F)
+                                                   SF.CopyTo(ES)
+                                               End Using
+                                           End Using
+                                       Next
+                                   End Using
+                               End Using
+                               ConsMsl("[备份] 备份完成：" & ZipPath)
+                               Hint("备份完成：" & ZipPath, HintType.Green)
+                           Catch ex As Exception
+                               ConsMsl("[备份] 备份失败：" & ex.Message)
+                               Hint("备份失败：" & ex.Message, HintType.Red)
+                           End Try
+                       End Sub)
     End Sub
 
     '映射页：我的 MSL Frp 信息
@@ -1415,21 +2406,56 @@ Public Class PageMslMain
     End Sub
 
     '===============================
-    '  下载辅助
+    '  下载辅助（含实时进度）
     '===============================
 
-    Private Sub DownloadFile(Url As String, Dest As String)
+    ''' <summary>显示新建页的实时下载进度卡片（可在后台线程调用）。</summary>
+    Private Sub DlShow(Label As String, Pct As Double?)
+        RunInUi(Sub()
+                    If PanDlCard Is Nothing Then Return
+                    PanDlCard.Visibility = Visibility.Visible
+                    If Label <> "" Then LabDlText.Text = Label
+                    If Pct.HasValue Then
+                        BarDl.IsIndeterminate = False
+                        BarDl.Value = Math.Max(0, Math.Min(100, Pct.Value))
+                        LabDlPct.Text = CInt(BarDl.Value) & "%"
+                    Else
+                        BarDl.IsIndeterminate = True
+                        LabDlPct.Text = ""
+                    End If
+                End Sub)
+    End Sub
+
+    ''' <summary>隐藏下载进度卡片（可在后台线程调用）。</summary>
+    Private Sub DlHide()
+        RunInUi(Sub() If PanDlCard IsNot Nothing Then PanDlCard.Visibility = Visibility.Collapsed)
+    End Sub
+
+    Private Sub DownloadFile(Url As String, Dest As String, Optional Label As String = "")
         Directory.CreateDirectory(Path.GetDirectoryName(Dest))
         Using Resp = Client.GetAsync(Url, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult()
             Resp.EnsureSuccessStatusCode()
+            Dim Total = Resp.Content.Headers.ContentLength
+            If Label <> "" Then
+                If Total.HasValue AndAlso Total.Value > 0 Then
+                    DlShow(Label, 0.0)
+                Else
+                    DlShow(Label, Nothing)
+                End If
+            End If
             Using FS = File.Create(Dest)
                 Using Stream = Resp.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
                     Dim Buf(8191) As Byte
                     Dim N As Integer
+                    Dim Done As Long = 0
                     Do
                         N = Stream.Read(Buf, 0, Buf.Length)
                         If N <= 0 Then Exit Do
                         FS.Write(Buf, 0, N)
+                        Done += N
+                        If Label <> "" AndAlso Total.HasValue AndAlso Total.Value > 0 Then
+                            DlShow(Label, Done * 100.0 / Total.Value)
+                        End If
                     Loop
                 End Using
             End Using

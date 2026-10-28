@@ -17,7 +17,7 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <!-- 板块一：MSL服务器联机模式 -->
-                <Border x:Name="HeadMsl" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,6" Cursor="Hand">
+                <Border x:Name="HeadMsl" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,10" Cursor="Hand">
                     <Grid Margin="16,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -28,12 +28,12 @@
                         <Path x:Name="ArrowMsl" Grid.Column="1" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
                     </Grid>
                 </Border>
-                <StackPanel x:Name="BodyMsl" Visibility="Collapsed" Margin="0,0,0,6">
+                <StackPanel x:Name="BodyMsl" Visibility="Collapsed" Margin="0,0,0,16">
                     <ContentControl x:Name="ContentMsl" Focusable="False" />
                 </StackPanel>
 
                 <!-- 板块二：FRP联机模式 -->
-                <Border x:Name="HeadFrp" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,6" Cursor="Hand">
+                <Border x:Name="HeadFrp" Height="48" Background="White" CornerRadius="8" Margin="0,16,0,10" Cursor="Hand">
                     <Grid Margin="16,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -44,12 +44,12 @@
                         <Path x:Name="ArrowFrp" Grid.Column="1" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
                     </Grid>
                 </Border>
-                <StackPanel x:Name="BodyFrp" Visibility="Collapsed" Margin="0,0,0,6">
+                <StackPanel x:Name="BodyFrp" Visibility="Collapsed" Margin="0,0,0,16">
                     <ContentControl x:Name="ContentFrp" Focusable="False" />
                 </StackPanel>
 
                 <!-- 板块三：GloriaCloud服务器 -->
-                <Border x:Name="HeadGlc" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,6" Cursor="Hand">
+                <Border x:Name="HeadGlc" Height="48" Background="White" CornerRadius="8" Margin="0,16,0,10" Cursor="Hand">
                     <Grid Margin="16,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
