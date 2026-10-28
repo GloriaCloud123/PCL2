@@ -733,23 +733,27 @@
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid Grid.Row="0" Margin="2,0,2,14">
-                        <TextBlock Text="隧道列表（双击进入详情页）" FontSize="21" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        <TextBlock Text="隧道列表（双击进入详情页）" FontSize="21" FontWeight="Bold" Foreground="#2E9BF0" VerticalAlignment="Center" />
                         <local:MyButton x:Name="BtnMslFrpInfo" Text="我的MSL Frp信息" Padding="14,7" HorizontalAlignment="Right" ColorType="Highlight" />
                     </Grid>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel>
-                            <!-- 运行中的隧道卡片 -->
-                            <Border x:Name="PanTunnelCard" Background="{StaticResource ColorBrushBg1}" CornerRadius="8" Padding="14,11" Margin="2,0,2,8" Visibility="Collapsed">
+                            <!-- 运行中的隧道卡片（双击进入详情页） -->
+                            <Border x:Name="PanTunnelCard" Background="#FFFFFF" CornerRadius="8" Padding="14,11" Margin="2,0,2,8"
+                                    BorderBrush="#E3EAF2" BorderThickness="1" Cursor="Hand"
+                                    MouseLeftButtonDown="PanTunnelCard_MouseDown">
                                 <StackPanel Orientation="Horizontal">
+                                    <Path Data="M4,6 H13 L15,9 H28 V22 H4 Z" Fill="#2E9BF0" Width="18" Height="14" Stretch="Fill" VerticalAlignment="Center" Margin="0,0,12,0" />
                                     <TextBlock Text="msl_map" FontSize="14" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0" />
                                     <TextBlock x:Name="LabTunnelDesc" Text="" FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                                     <TextBlock x:Name="LabMapState" Text="映射运行中" FontSize="12.5" Foreground="#2E9BF0" VerticalAlignment="Center" Margin="12,0,0,0" FontWeight="Bold" />
+                                    <TextBlock Text="（双击查看详情）" FontSize="11.5" Foreground="{StaticResource ColorBrushGray4}" VerticalAlignment="Center" Margin="8,0,0,0" />
                                 </StackPanel>
                             </Border>
-                            <!-- 添加隧道表单 -->
-                            <Border x:Name="PanMapForm" Background="{StaticResource ColorBrushBg1}" CornerRadius="8" Padding="16,13" Margin="2,0,2,8" Visibility="Collapsed">
+                            <!-- 添加隧道表单（快速映射） -->
+                            <Border x:Name="PanMapForm" Background="#EAF3FC" CornerRadius="8" Padding="16,13" Margin="2,0,2,12">
                                 <StackPanel>
-                                    <TextBlock Text="添加隧道（快速映射）" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,10" />
+                                    <TextBlock Text="添加隧道（快速映射）" FontSize="15" FontWeight="Bold" Foreground="#2E7CB8" Margin="0,0,0,10" />
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                                         <TextBlock Text="服务器地址" Width="84" VerticalAlignment="Center" />
                                         <local:MyTextBox x:Name="TxtMapAddr" Width="220" HintText="FRP 服务端地址" Margin="0,0,24,0" />
@@ -776,11 +780,49 @@
                                 </StackPanel>
                             </Border>
                             <!-- 空状态 -->
-                            <StackPanel x:Name="PanMapEmpty" HorizontalAlignment="Center" Margin="0,80,0,0">
+                            <StackPanel x:Name="PanMapEmpty" HorizontalAlignment="Center" Margin="0,50,0,0">
                                 <Path Data="M3,4 H21 V17 H14 L12,20 L10,17 H3 Z M3,4 V17" Stroke="#C9D6E2" StrokeThickness="1.6" Width="72" Height="56" Stretch="Uniform" HorizontalAlignment="Center" Fill="#EDF3F8" />
                                 <TextBlock Text="暂无数据" FontSize="13" Foreground="{StaticResource ColorBrushGray3}" HorizontalAlignment="Center" Margin="0,10,0,0" />
-                                <TextBlock Text="点击右下角「添加隧道」创建一条 FRP 映射吧~" FontSize="12" Foreground="{StaticResource ColorBrushGray4}" HorizontalAlignment="Center" Margin="0,6,0,0" />
+                                <TextBlock Text="填写上方表单，或在下方选择导入方式创建一条 FRP 映射吧~" FontSize="12" Foreground="{StaticResource ColorBrushGray4}" HorizontalAlignment="Center" Margin="0,6,0,0" />
                             </StackPanel>
+                            <!-- 导入配置：ini 文件 / 手动粘贴 -->
+                            <Grid Margin="2,14,2,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border x:Name="PanMapImportIni" Grid.Column="0" Background="#FFFFFF" CornerRadius="8" Padding="16,12"
+                                        BorderBrush="#E3EAF2" BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="PanMapImportIni_Click">
+                                    <StackPanel>
+                                        <TextBlock Text="导入 ini 配置文件模式" FontSize="13.5" FontWeight="Bold" Foreground="#333333" />
+                                        <TextBlock Text="选择服务器导出的 ini / toml 配置文件，一键启动映射。" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                                <Border x:Name="PanMapImportTxt" Grid.Column="2" Background="#FFFFFF" CornerRadius="8" Padding="16,12"
+                                        BorderBrush="#E3EAF2" BorderThickness="1" Cursor="Hand" MouseLeftButtonDown="PanMapImportTxt_Click">
+                                    <StackPanel>
+                                        <TextBlock Text="手动粘贴 txt 代码" FontSize="13.5" FontWeight="Bold" Foreground="#333333" />
+                                        <TextBlock Text="将 frpc 配置文本直接粘贴到输入框中即可使用。" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" Margin="0,4,0,0" TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+                            <!-- 手动粘贴配置的输入框 -->
+                            <Border x:Name="PanMapPaste" Background="#FFFFFF" CornerRadius="8" Padding="16,12" Margin="2,10,2,0"
+                                    BorderBrush="#E3EAF2" BorderThickness="1" Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock Text="粘贴 frpc 配置（支持 ini / toml 格式）" FontSize="13.5" FontWeight="Bold" Foreground="#333333" Margin="0,0,0,8" />
+                                    <Border Background="#F7FAFD" CornerRadius="6" BorderBrush="#DDE6EF" BorderThickness="1" Padding="8">
+                                        <TextBox x:Name="TxtMapPaste" MinHeight="120" MaxHeight="260" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                                 TextWrapping="NoWrap" FontFamily="Consolas" FontSize="12.5" Background="Transparent"
+                                                 BorderThickness="0" VerticalContentAlignment="Top" />
+                                    </Border>
+                                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                        <local:MyButton x:Name="BtnMapPasteStart" Text="使用此配置启动映射" Padding="16,8" ColorType="Highlight" Margin="0,0,12,0" />
+                                        <local:MyButton x:Name="BtnMapPasteCancel" Text="取消" Padding="16,8" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
                         </StackPanel>
                     </ScrollViewer>
                     <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="2,10,2,0">

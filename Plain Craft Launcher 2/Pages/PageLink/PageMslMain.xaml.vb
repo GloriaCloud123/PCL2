@@ -1585,6 +1585,7 @@ Public Class PageMslMain
     '  端口映射（MSL 内置 frpc 快速映射）
     '===============================
 
+    '快速映射：根据表单生成 ini 配置并启动
     Private Sub BtnMapStart_Click() Handles BtnMapStart.Click
         If IsMapRunning() Then
             Hint("映射已在运行中！", HintType.Blue) : Return
@@ -1612,6 +1613,23 @@ Public Class PageMslMain
             SB.AppendLine("local_port = " & LocalPort)
             SB.AppendLine("remote_port = " & RemotePort)
             File.WriteAllText(Ini, SB.ToString(), Encoding.UTF8)
+            LogMsl("映射配置已生成：" & Ini)
+            StartFrpcCore(Ini, "本地 " & LocalPort & " → 远程 " & RemotePort & " · " & Addr)
+        Catch ex As Exception
+            Hint("映射启动失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    '公共启动：以指定配置文件启动 frpc 隧道（快速映射 / 导入 ini / 粘贴配置 共用）
+    Private Sub StartFrpcCore(Ini As String, Desc As String)
+        If IsMapRunning() Then
+            Hint("映射已在运行中！", HintType.Blue) : Return
+        End If
+        Dim Frpc = FindFile(PathFrp, "frpc.exe")
+        If Frpc Is Nothing Then
+            Hint("尚未下载 frpc，请先到「纯 FRP 联机方案」页点击下载。", HintType.Red) : Return
+        End If
+        Try
             Dim Info = New ProcessStartInfo With {
                 .FileName = Frpc,
                 .Arguments = "-c """ & Ini & """",
@@ -1634,11 +1652,10 @@ Public Class PageMslMain
             ProcMap.BeginOutputReadLine()
             ProcMap.BeginErrorReadLine()
             LabMapState.Text = "映射运行中"
-            LabTunnelDesc.Text = "本地 " & LocalPort & " → 远程 " & RemotePort & " · " & Addr
+            LabTunnelDesc.Text = Desc
             UpdateTunnelUI()
-            LogMsl("映射配置已生成：" & Ini)
-            ConsMsl("[GloriaCloud] 映射已启动：本地 " & LocalPort & " → 远程 " & RemotePort)
-            Hint("映射已启动！玩家可通过 服务器地址:远程端口 连接。", HintType.Green)
+            ConsMsl("[GloriaCloud] 映射已启动：" & Desc)
+            Hint("映射已启动！隧道信息：" & Desc, HintType.Green)
         Catch ex As Exception
             Hint("映射启动失败：" & ex.Message, HintType.Red)
         End Try
@@ -2294,12 +2311,91 @@ Public Class PageMslMain
         BtnMapStop_Click()
     End Sub
 
-    '隧道列表 UI 状态：有映射运行时显示卡片，无映射且表单收起时显示空状态
+    '隧道列表 UI 状态：有映射运行时显示卡片
     Private Sub UpdateTunnelUI()
         If PanTunnelCard Is Nothing OrElse PanMapEmpty Is Nothing Then Return
         Dim Running As Boolean = IsMapRunning()
         PanTunnelCard.Visibility = If(Running, Visibility.Visible, Visibility.Collapsed)
-        PanMapEmpty.Visibility = If(Not Running AndAlso PanMapForm.Visibility <> Visibility.Visible, Visibility.Visible, Visibility.Collapsed)
+        PanMapEmpty.Visibility = Visibility.Collapsed
+    End Sub
+
+    '隧道卡片：双击进入详情页
+    Private Sub PanTunnelCard_MouseDown(sender As Object, e As MouseButtonEventArgs)
+        If e.ClickCount < 2 Then Return
+        Dim IniFile = PathFrp & "msl_map.ini"
+        Dim Detail As String
+        If IsMapRunning() Then
+            Detail = "当前状态：映射运行中" & vbCrLf &
+                     "隧道信息：" & LabTunnelDesc.Text & vbCrLf & vbCrLf
+        Else
+            Detail = "当前状态：映射未运行" & vbCrLf & vbCrLf
+        End If
+        If File.Exists(IniFile) Then
+            Detail &= "配置文件：" & IniFile & vbCrLf &
+                      "----------------------------" & vbCrLf &
+                      File.ReadAllText(IniFile, Encoding.UTF8)
+        Else
+            Detail &= "尚未生成配置文件（" & IniFile & "）。"
+        End If
+        MyMsgBox(Detail, "隧道详情 - msl_map", "确定")
+    End Sub
+
+    '导入方式一：选择 ini / toml 配置文件，一键启动映射
+    Private Sub PanMapImportIni_Click(sender As Object, e As MouseButtonEventArgs)
+        If IsMapRunning() Then
+            Hint("映射已在运行中，请先停止当前映射。", HintType.Blue) : Return
+        End If
+        Dim Frpc = FindFile(PathFrp, "frpc.exe")
+        If Frpc Is Nothing Then
+            Hint("尚未下载 frpc，请先到「纯 FRP 联机方案」页点击下载。", HintType.Red) : Return
+        End If
+        Dim Dial As New Microsoft.Win32.OpenFileDialog With {
+            .Title = "选择 frpc 配置文件（ini / toml）",
+            .Filter = "frpc 配置文件 (*.ini;*.toml;*.txt)|*.ini;*.toml;*.txt|所有文件 (*.*)|*.*"
+        }
+        If Dial.ShowDialog() <> True Then Return
+        Try
+            Directory.CreateDirectory(PathFrp)
+            Dim Ini As String = PathFrp & "msl_map.ini"
+            File.Copy(Dial.FileName, Ini, True)
+            Hint("已导入配置：" & Dial.FileName, HintType.Green)
+            StartFrpcCore(Ini, "导入配置 · " & IO.Path.GetFileName(Dial.FileName))
+        Catch ex As Exception
+            Hint("导入配置失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    '导入方式二：手动粘贴 txt 代码（展开粘贴框）
+    Private Sub PanMapImportTxt_Click(sender As Object, e As MouseButtonEventArgs)
+        PanMapPaste.Visibility = If(PanMapPaste.Visibility = Visibility.Visible, Visibility.Collapsed, Visibility.Visible)
+    End Sub
+
+    '粘贴框：使用粘贴的配置启动映射
+    Private Sub BtnMapPasteStart_Click() Handles BtnMapPasteStart.Click
+        If IsMapRunning() Then
+            Hint("映射已在运行中，请先停止当前映射。", HintType.Blue) : Return
+        End If
+        Dim Txt = TxtMapPaste.Text
+        If Txt.Trim() = "" Then
+            Hint("请先粘贴 frpc 配置文本。", HintType.Red) : Return
+        End If
+        Dim Frpc = FindFile(PathFrp, "frpc.exe")
+        If Frpc Is Nothing Then
+            Hint("尚未下载 frpc，请先到「纯 FRP 联机方案」页点击下载。", HintType.Red) : Return
+        End If
+        Try
+            Directory.CreateDirectory(PathFrp)
+            Dim Ini As String = PathFrp & "msl_map.ini"
+            File.WriteAllText(Ini, Txt, Encoding.UTF8)
+            StartFrpcCore(Ini, "粘贴配置")
+        Catch ex As Exception
+            Hint("映射启动失败：" & ex.Message, HintType.Red)
+        End Try
+    End Sub
+
+    '粘贴框：取消
+    Private Sub BtnMapPasteCancel_Click() Handles BtnMapPasteCancel.Click
+        PanMapPaste.Visibility = Visibility.Collapsed
     End Sub
 
     '联机页：手风琴展开/收起
