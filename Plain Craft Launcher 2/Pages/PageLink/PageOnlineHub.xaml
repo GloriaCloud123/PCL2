@@ -133,6 +133,28 @@
                 </Grid>
             </Grid>
 
+            <!-- 板块四：OpusMC 网页版游戏 -->
+            <Grid x:Name="SecOpu" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Border x:Name="HeadOpu" Grid.Row="0" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,10" Cursor="Hand">
+                    <Grid Margin="16,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="OpusMC 网页版游戏" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="0" Text="内置离线网页版 · PCL 内直接游玩 / 浏览器打开" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,34,0" />
+                        <Path x:Name="ArrowOpu" Grid.Column="1" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
+                    </Grid>
+                </Border>
+                <Grid x:Name="BodyOpu" Grid.Row="1" Margin="0,0,0,6">
+                    <ContentControl x:Name="ContentOpu" Focusable="False" />
+                </Grid>
+            </Grid>
+
         </Grid>
     </Grid>
 </local:MyPageRight>

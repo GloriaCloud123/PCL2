@@ -10,6 +10,7 @@ Public Class PageOnlineHub
     '保持被嵌入页面的实例存活（事件处理器挂在页面实例上）
     Private PageMsl As PageMslMain = Nothing
     Private PageFrp As PageFrpMain = Nothing
+    Private PageOpu As PageOpusMc = Nothing
 
     Private Sub Init() Handles Me.Loaded
         LoadGlcOptions()
@@ -34,14 +35,20 @@ Public Class PageOnlineHub
         ToggleSection(SecGlc, ArrowGlc, "Glc")
     End Sub
 
+    Private Sub HeadOpu_Click() Handles HeadOpu.MouseLeftButtonUp
+        ToggleSection(SecOpu, ArrowOpu, "Opu")
+    End Sub
+
     '展开某个板块并收起其余板块，确保当前板块占满内容区高度（内部 ScrollViewer 可正常工作）
     Private Sub OpenSection(Sec As Grid, Arrow As System.Windows.Shapes.Path, Kind As String)
         SecMsl.Visibility = If(Sec Is SecMsl, Visibility.Visible, Visibility.Collapsed)
         SecFrp.Visibility = If(Sec Is SecFrp, Visibility.Visible, Visibility.Collapsed)
         SecGlc.Visibility = If(Sec Is SecGlc, Visibility.Visible, Visibility.Collapsed)
+        SecOpu.Visibility = If(Sec Is SecOpu, Visibility.Visible, Visibility.Collapsed)
         AniStart({AaRotateTransform(ArrowMsl, If(Sec Is SecMsl, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowMsl")
         AniStart({AaRotateTransform(ArrowFrp, If(Sec Is SecFrp, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowFrp")
         AniStart({AaRotateTransform(ArrowGlc, If(Sec Is SecGlc, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowGlc")
+        AniStart({AaRotateTransform(ArrowOpu, If(Sec Is SecOpu, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowOpu")
         If Sec.Visibility = Visibility.Visible Then
             Sec.Opacity = 0
             AniStart({AaOpacity(Sec, 1, 180,, New AniEaseOutFluent)}, "OnlineHubSec " & Kind)
@@ -58,6 +65,7 @@ Public Class PageOnlineHub
             Select Case Kind
                 Case "Msl" : EnsureMslContent()
                 Case "Frp" : EnsureFrpContent()
+                Case "Opu" : EnsureOpuContent()
             End Select
             OpenSection(Sec, Arrow, Kind)
         End If
@@ -81,6 +89,14 @@ Public Class PageOnlineHub
         PageFrp = New PageFrpMain()
         ContentFrp.Content = PageFrp
         PageFrp.EnsureInit()
+    End Sub
+
+    Private Sub EnsureOpuContent()
+        If ContentOpu.Content IsNot Nothing Then Return
+        '整页嵌入：直接把 PageOpusMc 放入内容区，撑满高度以启用内部滚动与自适应窗口
+        PageOpu = New PageOpusMc()
+        ContentOpu.Content = PageOpu
+        PageOpu.EnsureInit()
     End Sub
 
     '===============================

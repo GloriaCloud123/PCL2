@@ -1,0 +1,126 @@
+<local:MyPageRight
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PCL" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" x:Class="PageOpusMc"
+             d:DesignWidth="860" d:DesignHeight="820">
+    <!-- OpusMC 网页版 Minecraft：内置 Offline 网页版，支持在 PCL 内直接游玩，或开启本地服务器通过浏览器游玩 -->
+    <Border Background="White" CornerRadius="12" Margin="0,0,0,12" Padding="0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <!-- 标题 -->
+            <StackPanel Grid.Row="0" Margin="20,16,20,6">
+                <TextBlock Text="OpusMC 网页版 Minecraft" FontSize="20" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" />
+                <TextBlock Text="内置 Offline 网页版：可在 PCL 内直接游玩（自动适配窗口），也可开启本地服务器通过浏览器游玩。"
+                           FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" Margin="0,5,0,0" LineHeight="17" />
+            </StackPanel>
+
+            <!-- 两个板块切换 -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="20,6,20,10">
+                <local:MyRadioButton x:Name="BtnTabInPcl" Text="PCL 内直接游玩" ColorType="Highlight" Height="40" Margin="0,0,8,0" Padding="16,0" />
+                <local:MyRadioButton x:Name="BtnTabBrowser" Text="通过浏览器打开" ColorType="Highlight" Height="40" Padding="16,0" />
+            </StackPanel>
+
+            <!-- 内容区 -->
+            <Grid Grid.Row="2" Margin="20,0,20,16">
+
+                <!-- ========== 板块一：PCL 内直接游玩 ========== -->
+                <Grid x:Name="PanInPcl" Visibility="Collapsed">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <!-- 控制条 -->
+                    <Grid Grid.Row="0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="LabInPclStatus" Text="尚未下载游戏资源" FontSize="13" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <local:MyButton x:Name="BtnOpuDl" Text="下载 / 更新资源" Padding="14,7" ColorType="Highlight" Margin="0,0,8,0" />
+                            <local:MyButton x:Name="BtnOpuStart" Text="开始游玩" Padding="14,7" Margin="0,0,8,0" />
+                            <local:MyButton x:Name="BtnOpuStop" Text="停止" Padding="14,7" />
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 下载进度卡片 -->
+                    <Border x:Name="PanDlCard" Grid.Row="1" Background="{StaticResource ColorBrushBg1}" CornerRadius="8" Padding="16,12" Margin="0,10,0,0" Visibility="Collapsed">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock x:Name="LabDlText" Text="正在下载……" FontSize="13" Foreground="{DynamicResource ColorBrush3}" TextTrimming="CharacterEllipsis" />
+                                <ProgressBar x:Name="BarDl" Height="6" Minimum="0" Maximum="100" Margin="0,9,0,0" Background="#E3ECF5" Foreground="#2E9BF0" BorderThickness="0" />
+                            </StackPanel>
+                            <TextBlock x:Name="LabDlPct" Grid.Column="1" Text="" FontSize="13" FontWeight="Bold" Foreground="#2E9BF0" VerticalAlignment="Center" Margin="14,0,0,0" />
+                        </Grid>
+                    </Border>
+
+                    <!-- 浏览器（自动适配窗口：撑满剩余空间） -->
+                    <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Margin="0,10,0,0">
+                        <Grid>
+                            <WebBrowser x:Name="BrowserInPcl" />
+                            <Border x:Name="PanInPclEmpty" Background="#F5F9FD">
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <Path Data="M3,5 H21 V15 H12 L10,18 L8,15 H3 Z" Stroke="#C9D6E2" StrokeThickness="1.6" Width="64" Height="48" Stretch="Uniform" Fill="#EDF3F8" HorizontalAlignment="Center" />
+                                    <TextBlock Text="点击「开始游玩」即可在 PCL 内加载游戏" FontSize="13" Foreground="{StaticResource ColorBrushGray3}" HorizontalAlignment="Center" Margin="0,12,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- ========== 板块二：通过浏览器打开 ========== -->
+                <Grid x:Name="PanBrowser" Visibility="Collapsed">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <local:MyCard Margin="0,0,0,12">
+                                <StackPanel Margin="15,13">
+                                    <TextBlock Text="通过浏览器打开" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+                                    <TextBlock Text="本机将启动一个本地服务器，然后自动用浏览器（优先 Edge，自动检测，否则使用系统默认浏览器）新建一个标签页打开游戏页面。"
+                                               FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" Margin="0,0,0,12" LineHeight="18" />
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                        <TextBlock Text="更改端口号" Width="96" VerticalAlignment="Center" />
+                                        <local:MyComboBox x:Name="ComboOpuPort" Width="240" IsEditable="True" HintText="80">
+                                            <local:MyComboBoxItem Content="80（默认）" IsSelected="True" />
+                                            <local:MyComboBoxItem Content="8080" />
+                                            <local:MyComboBoxItem Content="25565" />
+                                            <local:MyComboBoxItem Content="自定义（可直接在上方输入端口）" />
+                                        </local:MyComboBox>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <local:MyButton x:Name="BtnOpuOpenBrowser" Text="通过浏览器打开" Padding="14,7" ColorType="Highlight" Margin="0,0,8,0" />
+                                        <local:MyButton x:Name="BtnOpuStopServer" Text="停止服务" Padding="14,7" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </local:MyCard>
+                            <local:MyCard Margin="0,0,0,12">
+                                <StackPanel Margin="15,13">
+                                    <TextBlock Text="游戏资源" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+                                    <TextBlock x:Name="LabOpuRes" Text="尚未下载游戏资源，请先到「PCL 内直接游玩」下载。" FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" LineHeight="18" />
+                                </StackPanel>
+                            </local:MyCard>
+                            <local:MyCard>
+                                <StackPanel Margin="15,13">
+                                    <TextBlock Text="运行状态" FontSize="15" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,8" />
+                                    <TextBlock x:Name="LabOpuServer" Text="服务器未启动。" FontSize="12.5" Foreground="{StaticResource ColorBrushGray3}" TextWrapping="Wrap" LineHeight="18" />
+                                </StackPanel>
+                            </local:MyCard>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+
+            </Grid>
+        </Grid>
+    </Border>
+</local:MyPageRight>
