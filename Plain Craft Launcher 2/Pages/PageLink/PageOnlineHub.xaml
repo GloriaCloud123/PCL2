@@ -11,19 +11,17 @@
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" Text="联机" FontSize="22" Foreground="{DynamicResource ColorBrush3}" Margin="0,0,0,4" />
-        <TextBlock Grid.Row="0" Text="全部联机方式集中于此：点击下方板块标题展开或收起，三种模式任意切换。"
+        <TextBlock Grid.Row="0" Text="全部联机方式集中于此：点击下方板块标题展开或收起，四种模式任意切换。"
                    FontSize="13" Foreground="{StaticResource ColorBrushGray3}" Margin="0,37,0,12" TextWrapping="Wrap" />
 
-        <!-- 内容区：确定高度容器；各板块互斥单开，当前板块占满高度并在内部滚动 -->
+        <!-- 内容区：确定高度容器 -->
         <Grid x:Name="PanBody" Grid.Row="1">
 
-            <!-- 板块一：MSL服务器联机模式 -->
-            <Grid x:Name="SecMsl" Visibility="Collapsed">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <Border x:Name="HeadMsl" Grid.Row="0" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,10" Cursor="Hand">
+            <!-- 行 0：标题区，四个板块标题始终可见，点击切换 -->
+            <StackPanel x:Name="PanHeads" Grid.Row="0" Margin="0,0,0,12">
+
+                <!-- 板块一：MSL服务器联机模式 -->
+                <Border x:Name="HeadMsl" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,10" Cursor="Hand">
                     <Grid Margin="16,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -34,18 +32,9 @@
                         <Path x:Name="ArrowMsl" Grid.Column="1" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
                     </Grid>
                 </Border>
-                <Grid x:Name="BodyMsl" Grid.Row="1" Margin="0,0,0,16">
-                    <ContentControl x:Name="ContentMsl" Focusable="False" />
-                </Grid>
-            </Grid>
 
-            <!-- 板块二：FRP联机模式 -->
-            <Grid x:Name="SecFrp" Visibility="Collapsed">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <Border x:Name="HeadFrp" Grid.Row="0" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,10" Cursor="Hand">
+                <!-- 板块二：FRP联机模式 -->
+                <Border x:Name="HeadFrp" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,10" Cursor="Hand">
                     <Grid Margin="16,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -56,18 +45,9 @@
                         <Path x:Name="ArrowFrp" Grid.Column="1" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
                     </Grid>
                 </Border>
-                <Grid x:Name="BodyFrp" Grid.Row="1" Margin="0,0,0,16">
-                    <ContentControl x:Name="ContentFrp" Focusable="False" />
-                </Grid>
-            </Grid>
 
-            <!-- 板块三：GloriaCloud服务器 -->
-            <Grid x:Name="SecGlc" Visibility="Collapsed">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <Border x:Name="HeadGlc" Grid.Row="0" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,10" Cursor="Hand">
+                <!-- 板块三：GloriaCloud服务器 -->
+                <Border x:Name="HeadGlc" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,10" Cursor="Hand">
                     <Grid Margin="16,0">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -78,7 +58,30 @@
                         <Path x:Name="ArrowGlc" Grid.Column="1" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
                     </Grid>
                 </Border>
-                <Grid x:Name="BodyGlc" Grid.Row="1" Margin="0,0,0,6">
+
+                <!-- 板块四：OpusMC 网页版游戏 -->
+                <Border x:Name="HeadOpu" Height="48" Background="White" CornerRadius="8" Cursor="Hand">
+                    <Grid Margin="16,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="OpusMC 网页版游戏" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="0" Text="内置离线网页版 · PCL 内直接游玩 / 浏览器打开" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,34,0" />
+                        <Path x:Name="ArrowOpu" Grid.Column="1" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
+                    </Grid>
+                </Border>
+
+            </StackPanel>
+
+            <!-- 行 1：body 区，四个板块互斥展开，当前板块占满高度并在内部滚动 -->
+            <Grid x:Name="PanBodies" Grid.Row="1">
+
+                <ContentControl x:Name="ContentMsl" Visibility="Collapsed" Focusable="False" />
+
+                <ContentControl x:Name="ContentFrp" Visibility="Collapsed" Focusable="False" />
+
+                <Grid x:Name="BodyGlc" Visibility="Collapsed">
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
                         <StackPanel>
                             <local:MyCard Margin="0,0,0,12">
@@ -131,30 +134,10 @@
                         </StackPanel>
                     </ScrollViewer>
                 </Grid>
-            </Grid>
 
-            <!-- 板块四：OpusMC 网页版游戏 -->
-            <Grid x:Name="SecOpu" Visibility="Collapsed">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                </Grid.RowDefinitions>
-                <Border x:Name="HeadOpu" Grid.Row="0" Height="48" Background="White" CornerRadius="8" Margin="0,0,0,10" Cursor="Hand">
-                    <Grid Margin="16,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="OpusMC 网页版游戏" FontSize="15" FontWeight="Bold" Foreground="{DynamicResource ColorBrush3}" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="0" Text="内置离线网页版 · PCL 内直接游玩 / 浏览器打开" FontSize="12" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,34,0" />
-                        <Path x:Name="ArrowOpu" Grid.Column="1" Data="M0,0 L5,5 10,0" Stroke="{DynamicResource ColorBrushGray3}" StrokeThickness="2" Width="12" Height="7" Stretch="None" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5" />
-                    </Grid>
-                </Border>
-                <Grid x:Name="BodyOpu" Grid.Row="1" Margin="0,0,0,6">
-                    <ContentControl x:Name="ContentOpu" Focusable="False" />
-                </Grid>
-            </Grid>
+                <ContentControl x:Name="ContentOpu" Visibility="Collapsed" Focusable="False" />
 
+            </Grid>
         </Grid>
     </Grid>
 </local:MyPageRight>

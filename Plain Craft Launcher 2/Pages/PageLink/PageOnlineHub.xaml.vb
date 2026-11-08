@@ -16,7 +16,7 @@ Public Class PageOnlineHub
         LoadGlcOptions()
         '默认展开 MSL 板块（互斥单开，保证 MSL 占满内容区高度、内部可滚动完整显示）
         EnsureMslContent()
-        OpenSection(SecMsl, ArrowMsl, "Msl")
+        OpenSection(ContentMsl, ArrowMsl, "Msl")
     End Sub
 
     '===============================
@@ -24,41 +24,41 @@ Public Class PageOnlineHub
     '===============================
 
     Private Sub HeadMsl_Click() Handles HeadMsl.MouseLeftButtonUp
-        ToggleSection(SecMsl, ArrowMsl, "Msl")
+        ToggleSection(ContentMsl, ArrowMsl, "Msl")
     End Sub
 
     Private Sub HeadFrp_Click() Handles HeadFrp.MouseLeftButtonUp
-        ToggleSection(SecFrp, ArrowFrp, "Frp")
+        ToggleSection(ContentFrp, ArrowFrp, "Frp")
     End Sub
 
     Private Sub HeadGlc_Click() Handles HeadGlc.MouseLeftButtonUp
-        ToggleSection(SecGlc, ArrowGlc, "Glc")
+        ToggleSection(BodyGlc, ArrowGlc, "Glc")
     End Sub
 
     Private Sub HeadOpu_Click() Handles HeadOpu.MouseLeftButtonUp
-        ToggleSection(SecOpu, ArrowOpu, "Opu")
+        ToggleSection(ContentOpu, ArrowOpu, "Opu")
     End Sub
 
-    '展开某个板块并收起其余板块，确保当前板块占满内容区高度（内部 ScrollViewer 可正常工作）
-    Private Sub OpenSection(Sec As Grid, Arrow As System.Windows.Shapes.Path, Kind As String)
-        SecMsl.Visibility = If(Sec Is SecMsl, Visibility.Visible, Visibility.Collapsed)
-        SecFrp.Visibility = If(Sec Is SecFrp, Visibility.Visible, Visibility.Collapsed)
-        SecGlc.Visibility = If(Sec Is SecGlc, Visibility.Visible, Visibility.Collapsed)
-        SecOpu.Visibility = If(Sec Is SecOpu, Visibility.Visible, Visibility.Collapsed)
-        AniStart({AaRotateTransform(ArrowMsl, If(Sec Is SecMsl, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowMsl")
-        AniStart({AaRotateTransform(ArrowFrp, If(Sec Is SecFrp, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowFrp")
-        AniStart({AaRotateTransform(ArrowGlc, If(Sec Is SecGlc, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowGlc")
-        AniStart({AaRotateTransform(ArrowOpu, If(Sec Is SecOpu, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowOpu")
-        If Sec.Visibility = Visibility.Visible Then
-            Sec.Opacity = 0
-            AniStart({AaOpacity(Sec, 1, 180,, New AniEaseOutFluent)}, "OnlineHubSec " & Kind)
+    '展开某个板块的 body 并收起其余板块的 body；标题区始终可见，当前 body 占满内容区高度（内部 ScrollViewer 可正常工作）
+    Private Sub OpenSection(Body As FrameworkElement, Arrow As System.Windows.Shapes.Path, Kind As String)
+        ContentMsl.Visibility = If(Body Is ContentMsl, Visibility.Visible, Visibility.Collapsed)
+        ContentFrp.Visibility = If(Body Is ContentFrp, Visibility.Visible, Visibility.Collapsed)
+        BodyGlc.Visibility = If(Body Is BodyGlc, Visibility.Visible, Visibility.Collapsed)
+        ContentOpu.Visibility = If(Body Is ContentOpu, Visibility.Visible, Visibility.Collapsed)
+        AniStart({AaRotateTransform(ArrowMsl, If(Body Is ContentMsl, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowMsl")
+        AniStart({AaRotateTransform(ArrowFrp, If(Body Is ContentFrp, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowFrp")
+        AniStart({AaRotateTransform(ArrowGlc, If(Body Is BodyGlc, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowGlc")
+        AniStart({AaRotateTransform(ArrowOpu, If(Body Is ContentOpu, 180, 0), 160,, New AniEaseOutFluent)}, "OnlineHubArrow ArrowOpu")
+        If Body.Visibility = Visibility.Visible Then
+            Body.Opacity = 0
+            AniStart({AaOpacity(Body, 1, 180,, New AniEaseOutFluent)}, "OnlineHubBody " & Kind)
         End If
     End Sub
 
-    Private Sub ToggleSection(Sec As Grid, Arrow As System.Windows.Shapes.Path, Kind As String)
-        If Sec.Visibility = Visibility.Visible Then
-            '已展开则收起当前板块
-            Sec.Visibility = Visibility.Collapsed
+    Private Sub ToggleSection(Body As FrameworkElement, Arrow As System.Windows.Shapes.Path, Kind As String)
+        If Body.Visibility = Visibility.Visible Then
+            '已展开则收起当前板块（body 折叠，标题保留可见）
+            Body.Visibility = Visibility.Collapsed
             AniStart({AaRotateTransform(Arrow, 0, 160,, New AniEaseOutFluent)}, "OnlineHubArrow " & Arrow.Name)
         Else
             '未展开则展开（互斥单开，自动收起其余板块）
@@ -67,7 +67,7 @@ Public Class PageOnlineHub
                 Case "Frp" : EnsureFrpContent()
                 Case "Opu" : EnsureOpuContent()
             End Select
-            OpenSection(Sec, Arrow, Kind)
+            OpenSection(Body, Arrow, Kind)
         End If
     End Sub
 
