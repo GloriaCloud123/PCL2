@@ -151,12 +151,19 @@ Public Class PageOpusMc
         Try
             For Each F In Directory.GetFiles(Root)
                 If F.Equals(KeepFile, StringComparison.OrdinalIgnoreCase) Then Continue For
-                Try File.Delete(F) Catch : End Try
+                Try
+                    File.Delete(F)
+                Catch
+                End Try
             Next
             For Each D In Directory.GetDirectories(Root)
-                Try Directory.Delete(D, True) Catch : End Try
+                Try
+                    Directory.Delete(D, True)
+                Catch
+                End Try
             Next
-        Catch : End Try
+        Catch
+        End Try
     End Sub
 
     '===============================
@@ -181,7 +188,10 @@ Public Class PageOpusMc
         StopServer(ListenerInPcl)
         ListenerInPcl = Nothing : ThreadInPcl = Nothing : PortInPcl = 0
         PanInPclEmpty.Visibility = Visibility.Visible
-        Try BrowserInPcl.Navigate("about:blank") Catch : End Try
+        Try
+            BrowserInPcl.Navigate("about:blank")
+        Catch
+        End Try
         Hint("已停止 PCL 内游戏。", HintType.Blue)
     End Sub
 
@@ -307,14 +317,24 @@ Public Class PageOpusMc
             Resp.OutputStream.Write(Bytes, 0, Bytes.Length)
             Resp.Close()
         Catch
-            Try : Resp.StatusCode = 500 : Resp.Close() : Catch : End Try
+            Try
+                Resp.StatusCode = 500
+                Resp.Close()
+            Catch
+            End Try
         End Try
     End Sub
 
     Private Sub StopServer(ByRef L As HttpListener)
         If L IsNot Nothing Then
-            Try L.Stop() Catch : End Try
-            Try L.Close() Catch : End Try
+            Try
+                L.Stop()
+            Catch
+            End Try
+            Try
+                L.Close()
+            Catch
+            End Try
         End If
         L = Nothing
     End Sub
