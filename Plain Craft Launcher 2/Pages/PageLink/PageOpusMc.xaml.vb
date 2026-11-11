@@ -1,6 +1,7 @@
 Imports System.IO
+Imports System.IO.Compression
 Imports System.Net
-Imports System.Net.Http
+Imports System.Reflection
 Imports System.Text
 Imports System.Threading
 Imports Microsoft.Win32
@@ -8,19 +9,20 @@ Imports System.Diagnostics
 Imports PCL
 
 ''' <summary>
-''' OpusMC 网页版 Minecraft：内置 Offline 网页版。
+''' OpusMC 网页版 Minecraft：游戏文件已作为嵌入资源直接打包进本启动器 EXE，
+''' 首次打开本页时自动解压到本地，无需任何联网下载，点开即玩。
 ''' 两种游玩方式：
 '''   1) PCL 内直接游玩 —— 启动本地服务器并用内嵌 WebBrowser 加载（自动适配窗口）；
 '''   2) 通过浏览器打开 —— 启动本地服务器（默认 80 端口，可更改），自动用浏览器（优先 Edge）打开。
 ''' </summary>
 Public Class PageOpusMc
 
-    '游戏资源目录与下载地址（opusmc_offline.zip 由本地下载源服务提供）
+    '游戏资源目录（解压落地位置）
     Private Const PathOpu As String = "GloriaTools\OpusMc\"
-    Private Const OpuZip As String = "opusmc_offline.zip"
-    Private Const OpuUrl As String = "http://localhost:8765/" & OpuZip
-
-    Private Shared ReadOnly Client As New HttpClient()
+    '嵌入资源名（PCL 根命名空间 + Resources 目录 + 文件名）
+    Private Const EMBEDDED_RES As String = "PCL.Resources.OpusMc.zip"
+    '内置游戏版本标记：修改此值可强制重新解压（例如后续更新了游戏）
+    Private Const GAME_VERSION As String = "20261111"
 
     '在类型首次使用前（早于内嵌 WebBrowser 控件创建）写入 IE 引擎兼容注册表，确保 WebBrowser 以 IE11 模式渲染
     Shared Sub New()
@@ -53,6 +55,8 @@ Public Class PageOpusMc
     Private Sub Init() Handles Me.Loaded
         '默认展示「PCL 内直接游玩」
         SwitchTab("InPcl")
+        '内置游戏：首次打开自动解压，无需下载
+        RunInNewThread(AddressOf EnsureGame, "OpuExtract")
         RefreshStatus()
     End Sub
 
@@ -74,12 +78,10 @@ Public Class PageOpusMc
         PanBrowser.Visibility = If(Kind = "Browser", Visibility.Visible, Visibility.Collapsed)
         BtnTabInPcl.SetChecked(Kind = "InPcl", False, False)
         BtnTabBrowser.SetChecked(Kind = "Browser", False, False)
-        '切换到浏览器板块时刷新资源提示
-        If Kind = "Browser" Then RefreshStatus()
     End Sub
 
     '===============================
-    '  游戏资源：下载 / 解压
+    '  游戏资源：从嵌入资源解压（无需联网下载）
     '===============================
 
     Private Function GameReady() As Boolean
@@ -87,70 +89,91 @@ Public Class PageOpusMc
         Return File.Exists(ServeRoot & "index.html")
     End Function
 
+    '首次打开时把内置游戏从 EXE 资源解压到本地；已解压且版本一致则跳过
+    Private Sub EnsureGame()
+        Try
+            RunInUi(Sub()
+                        LabInPclStatus.Text = "正在准备内置游戏资源……"
+                        LabInPclStatus.Foreground = New SolidColorBrush(Colors.Gray)
+                        BtnOpuStart.IsEnabled = False
+                        BtnOpuOpenBrowser.IsEnabled = False
+                    End Sub)
+            Dim Root = Paths.AppDataThenName & PathOpu
+            Directory.CreateDirectory(Root)
+            Dim VerFile = Root & ".embedded.version"
+            Dim NeedExtract = True
+            If File.Exists(VerFile) Then
+                Try
+                    If File.ReadAllText(VerFile).Trim() = GAME_VERSION Then NeedExtract = False
+                Catch
+                End Try
+            End If
+            If NeedExtract Then
+                '清空旧内容（仅清理本启动器自己的目录）后从嵌入资源解压
+                DeleteContents(Root)
+                Dim ResName = ResolveResourceName()
+                If ResName = "" Then Throw New Exception("未找到内置游戏资源，请重新下载启动器。")
+                Using S = Assembly.GetExecutingAssembly().GetManifestResourceStream(ResName)
+                    If S Is Nothing Then Throw New Exception("内置游戏资源读取失败：" & ResName)
+                    Dim Tmp = Root & "__opusmc_tmp.zip"
+                    Using FS = File.Create(Tmp)
+                        S.CopyTo(FS)
+                    End Using
+                    ZipFile.ExtractToDirectory(Tmp, Root)
+                    File.Delete(Tmp)
+                End Using
+                File.WriteAllText(VerFile, GAME_VERSION)
+            End If
+            ServeRoot = Root
+            RunInUi(Sub()
+                        RefreshStatus()
+                        Hint("内置游戏已就绪，点开即玩！", HintType.Green)
+                    End Sub)
+        Catch ex As Exception
+            RunInUi(Sub()
+                        LabInPclStatus.Text = "内置游戏准备失败：" & ex.Message
+                        LabInPclStatus.Foreground = New SolidColorBrush(Colors.Red)
+                        LabOpuRes.Text = "内置游戏准备失败：" & ex.Message & "。请确认启动器文件完整，或重新下载启动器。"
+                        BtnOpuStart.IsEnabled = False
+                        BtnOpuOpenBrowser.IsEnabled = False
+                    End Sub)
+        End Try
+    End Sub
+
+    '兼容不同构建环境下嵌入资源命名差异
+    Private Function ResolveResourceName() As String
+        Dim Cands() As String = {EMBEDDED_RES, "Resources.OpusMc.zip", "OpusMc.zip", "PCL.OpusMc.zip"}
+        For Each C In Cands
+            Try
+                If Assembly.GetExecutingAssembly().GetManifestResourceStream(C) IsNot Nothing Then Return C
+            Catch
+            End Try
+        Next
+        Return ""
+    End Function
+
     Private Sub RefreshStatus()
         Dim Ready = GameReady()
         RunInUi(Sub()
                     If Ready Then
-                        LabInPclStatus.Text = "游戏资源已就绪"
+                        LabInPclStatus.Text = "游戏已内置，点开即玩"
                         LabInPclStatus.Foreground = New SolidColorBrush(Colors.Green)
-                        LabOpuRes.Text = "游戏资源已就绪（位于 " & ServeRoot & "）。"
+                        LabOpuRes.Text = "游戏已内置（位于 " & ServeRoot & "），无需下载，点击即可游玩。"
                         BtnOpuStart.IsEnabled = True
                         BtnOpuOpenBrowser.IsEnabled = True
                     Else
-                        LabInPclStatus.Text = "尚未下载游戏资源"
+                        LabInPclStatus.Text = "正在准备内置游戏资源……"
                         LabInPclStatus.Foreground = New SolidColorBrush(Colors.Gray)
-                        LabOpuRes.Text = "尚未下载游戏资源，请先到「PCL 内直接游玩」点击「下载 / 更新资源」。"
+                        LabOpuRes.Text = "正在准备内置游戏资源，请稍候……"
                         BtnOpuStart.IsEnabled = False
                         BtnOpuOpenBrowser.IsEnabled = False
                     End If
                 End Sub)
     End Sub
 
-    Private Sub BtnOpuDl_Click() Handles BtnOpuDl.Click
-        BtnOpuDl.IsEnabled = False
-        RunInNewThread(Sub()
-                           Try
-                               DlShow("正在下载 OpusMC 离线包……", Nothing)
-                               Dim Root = Paths.AppDataThenName & PathOpu
-                               Directory.CreateDirectory(Root)
-                               Dim Zip = Root & OpuZip
-                               DownloadFile(OpuUrl, Zip, "正在下载 OpusMC 离线包")
-                               DlShow("正在解压 OpusMC 离线包……", Nothing)
-                               '清空旧内容后解压（仅清理本启动器自己的目录）
-                               DeleteContents(Root, Zip)
-                               System.IO.Compression.ZipFile.ExtractToDirectory(Zip, Root)
-                               ServeRoot = FindServeRoot(Root)
-                               DlHide()
-                               RefreshStatus()
-                               Hint("游戏资源已就绪，可以开始游玩！", HintType.Green)
-                           Catch ex As Exception
-                               DlHide()
-                               Hint("下载或解压失败：" & ex.Message & "。请确认下载源服务（localhost:8765）已启动。", HintType.Red)
-                           Finally
-                               RunInUi(Sub() BtnOpuDl.IsEnabled = True)
-                           End Try
-                       End Sub, "OpuDownload")
-    End Sub
-
-    '递归查找 index.html 所在目录作为静态服务根
-    Private Function FindServeRoot(Root As String) As String
-        Dim Hit = FindFile(Root, "index.html")
-        If Hit IsNot Nothing Then Return Path.GetDirectoryName(Hit) & "\"
-        Return Root
-    End Function
-
-    Private Function FindFile(Root As String, Name As String) As String
-        If Not Directory.Exists(Root) Then Return Nothing
-        For Each F In Directory.EnumerateFiles(Root, Name, SearchOption.AllDirectories)
-            Return F
-        Next
-        Return Nothing
-    End Function
-
-    Private Sub DeleteContents(Root As String, KeepFile As String)
+    Private Sub DeleteContents(Root As String)
         Try
             For Each F In Directory.GetFiles(Root)
-                If F.Equals(KeepFile, StringComparison.OrdinalIgnoreCase) Then Continue For
                 Try
                     File.Delete(F)
                 Catch
@@ -171,7 +194,7 @@ Public Class PageOpusMc
     '===============================
 
     Private Sub BtnOpuStart_Click() Handles BtnOpuStart.Click
-        If Not GameReady() Then Hint("请先下载游戏资源！", HintType.Red) : Return
+        If Not GameReady() Then Hint("内置游戏尚未准备完成，请稍候……", HintType.Red) : Return
         If ListenerInPcl IsNot Nothing AndAlso ListenerInPcl.IsListening Then
             Hint("游戏已在 PCL 内运行中。", HintType.Blue) : Return
         End If
@@ -200,7 +223,7 @@ Public Class PageOpusMc
     '===============================
 
     Private Sub BtnOpuOpenBrowser_Click() Handles BtnOpuOpenBrowser.Click
-        If Not GameReady() Then Hint("请先下载游戏资源！", HintType.Red) : Return
+        If Not GameReady() Then Hint("内置游戏尚未准备完成，请稍候……", HintType.Red) : Return
         Dim Port = ParsePort()
         If Port <= 0 Then Hint("请输入有效的端口号（1-65535）。", HintType.Red) : Return
         '若已在运行，先停掉再用新端口重启
@@ -351,57 +374,6 @@ Public Class PageOpusMc
             End Using
         Catch
         End Try
-    End Sub
-
-    '===============================
-    '  下载辅助（含实时进度）
-    '===============================
-
-    Private Sub DlShow(Label As String, Pct As Double?)
-        RunInUi(Sub()
-                    If PanDlCard Is Nothing Then Return
-                    PanDlCard.Visibility = Visibility.Visible
-                    If Label <> "" Then LabDlText.Text = Label
-                    If Pct.HasValue Then
-                        BarDl.IsIndeterminate = False
-                        BarDl.Value = Math.Max(0, Math.Min(100, Pct.Value))
-                        LabDlPct.Text = CInt(BarDl.Value) & "%"
-                    Else
-                        BarDl.IsIndeterminate = True
-                        LabDlPct.Text = ""
-                    End If
-                End Sub)
-    End Sub
-
-    Private Sub DlHide()
-        RunInUi(Sub() If PanDlCard IsNot Nothing Then PanDlCard.Visibility = Visibility.Collapsed)
-    End Sub
-
-    Private Sub DownloadFile(Url As String, Dest As String, Optional Label As String = "")
-        Directory.CreateDirectory(Path.GetDirectoryName(Dest))
-        Using Resp = Client.GetAsync(Url, HttpCompletionOption.ResponseHeadersRead).GetAwaiter().GetResult()
-            Resp.EnsureSuccessStatusCode()
-            Dim Total = Resp.Content.Headers.ContentLength
-            If Label <> "" Then
-                If Total.HasValue AndAlso Total.Value > 0 Then DlShow(Label, 0.0) Else DlShow(Label, Nothing)
-            End If
-            Using FS = File.Create(Dest)
-                Using Stream = Resp.Content.ReadAsStreamAsync().GetAwaiter().GetResult()
-                    Dim Buf(8191) As Byte
-                    Dim N As Integer
-                    Dim Done As Long = 0
-                    Do
-                        N = Stream.Read(Buf, 0, Buf.Length)
-                        If N <= 0 Then Exit Do
-                        FS.Write(Buf, 0, N)
-                        Done += N
-                        If Label <> "" AndAlso Total.HasValue AndAlso Total.Value > 0 Then
-                            DlShow(Label, Done * 100.0 / Total.Value)
-                        End If
-                    Loop
-                End Using
-            End Using
-        End Using
     End Sub
 
 End Class

@@ -763,6 +763,8 @@
       <SubType>Designer</SubType>
       <LastGenOutput>Resources.Designer.vb</LastGenOutput>
     </EmbeddedResource>
+    <!-- OpusMC 网页版 Minecraft：作为嵌入资源直接打包进 EXE，首次运行时解压到本地，无需联网下载 -->
+    <EmbeddedResource Include="Resources\OpusMc.zip" />
     <None Include="My Project\app.manifest" />
     <None Include="My Project\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

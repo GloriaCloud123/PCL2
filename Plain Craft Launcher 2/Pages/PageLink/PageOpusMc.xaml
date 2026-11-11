@@ -43,28 +43,16 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="LabInPclStatus" Text="尚未下载游戏资源" FontSize="13" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="LabInPclStatus" Text="游戏已内置，点开即玩" FontSize="13" Foreground="{StaticResource ColorBrushGray3}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
                         <StackPanel Grid.Column="1" Orientation="Horizontal">
-                            <local:MyButton x:Name="BtnOpuDl" Text="下载 / 更新资源" Padding="14,7" ColorType="Highlight" Margin="0,0,8,0" />
-                            <local:MyButton x:Name="BtnOpuStart" Text="开始游玩" Padding="14,7" Margin="0,0,8,0" />
+                            <local:MyButton x:Name="BtnOpuStart" Text="开始游玩" Padding="14,7" ColorType="Highlight" Margin="0,0,8,0" />
                             <local:MyButton x:Name="BtnOpuStop" Text="停止" Padding="14,7" />
                         </StackPanel>
                     </Grid>
 
-                    <!-- 下载进度卡片 -->
-                    <Border x:Name="PanDlCard" Grid.Row="1" Background="{StaticResource ColorBrushBg1}" CornerRadius="8" Padding="16,12" Margin="0,10,0,0" Visibility="Collapsed">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <TextBlock x:Name="LabDlText" Text="正在下载……" FontSize="13" Foreground="{DynamicResource ColorBrush3}" TextTrimming="CharacterEllipsis" />
-                                <ProgressBar x:Name="BarDl" Height="6" Minimum="0" Maximum="100" Margin="0,9,0,0" Background="#E3ECF5" Foreground="#2E9BF0" BorderThickness="0" />
-                            </StackPanel>
-                            <TextBlock x:Name="LabDlPct" Grid.Column="1" Text="" FontSize="13" FontWeight="Bold" Foreground="#2E9BF0" VerticalAlignment="Center" Margin="14,0,0,0" />
-                        </Grid>
-                    </Border>
+                    <!-- 内嵌浏览器引擎提示 -->
+                    <TextBlock Grid.Row="1" Text="提示：PCL 内嵌浏览器基于系统 IE 引擎，若新版网页游戏无法正常显示，请改用上方「通过浏览器打开」（使用 Edge / Chrome 渲染，兼容性最佳）。"
+                               FontSize="11.5" Foreground="{StaticResource ColorBrushGray4}" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="16" />
 
                     <!-- 浏览器（自动适配窗口：撑满剩余空间） -->
                     <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Margin="0,10,0,0">
