@@ -68,7 +68,7 @@ Public Class FormMain
             End If
             If LastVersion < 379 Then 'Release 2.12.1
                 If LastVersion >= 376 Then
-                    FeatureList.Add(New KeyValuePair(Of Integer, String)(5, "新增：联机功能回归！顶部联机中心支持 MSL 服务器、FRP 与 GloriaCloud 三种联机方式"))
+                    FeatureList.Add(New KeyValuePair(Of Integer, String)(5, "新增：联机功能回归！顶部联机中心支持 MSL 服务器、FRP、GloriaCloud 与 OpusMC 网页版游戏四种联机方式"))
                 End If
                 FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "新增：适配新的 Minecraft 版本号系统与 Unobfuscated 版本"))
                 FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：巨幅优化各个下载页面和 Mod 管理页面的性能"))
@@ -185,7 +185,7 @@ Public Class FormMain
             End If
             If LastVersion < 377 Then 'Snapshot 2.12.0
                 If LastVersion >= 373 Then
-                    FeatureList.Add(New KeyValuePair(Of Integer, String)(5, "新增：联机功能回归！顶部联机中心支持 MSL 服务器、FRP 与 GloriaCloud 三种联机方式"))
+                    FeatureList.Add(New KeyValuePair(Of Integer, String)(5, "新增：联机功能回归！顶部联机中心支持 MSL 服务器、FRP、GloriaCloud 与 OpusMC 网页版游戏四种联机方式"))
                 End If
                 FeatureList.Add(New KeyValuePair(Of Integer, String)(3, "新增：适配新的 Minecraft 版本号系统与 Unobfuscated 版本"))
                 FeatureList.Add(New KeyValuePair(Of Integer, String)(2, "优化：巨幅优化各个下载页面和 Mod 管理页面的性能"))

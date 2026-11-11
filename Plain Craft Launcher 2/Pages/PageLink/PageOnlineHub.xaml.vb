@@ -14,9 +14,8 @@ Public Class PageOnlineHub
 
     Private Sub Init() Handles Me.Loaded
         LoadGlcOptions()
-        '默认展开 MSL 板块（互斥单开，保证 MSL 占满内容区高度、内部可滚动完整显示）
+        '四个板块标题始终可见；默认不自动展开，让用户一眼看到全部四种联机方式，点哪个展开哪个
         EnsureMslContent()
-        OpenSection(ContentMsl, ArrowMsl, "Msl")
     End Sub
 
     '===============================
